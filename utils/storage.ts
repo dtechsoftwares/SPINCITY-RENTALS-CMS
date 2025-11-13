@@ -1,6 +1,6 @@
 import { User, Contact, InventoryItem, Vendor, Rental, Repair, Sale, SmsSettings, NotificationSettings } from '../types';
 import { db } from './firebase';
-import { collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 
 // --- Collections ---
 const COLLECTIONS = {

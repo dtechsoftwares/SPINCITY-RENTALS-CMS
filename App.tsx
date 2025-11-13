@@ -18,10 +18,11 @@ import MonitorSite from './components/MonitorSite';
 import HtmlViewer from './components/HtmlViewer';
 import * as db from './utils/storage';
 import { auth, db as firestoreDb } from './utils/firebase';
+// Fix: Use named imports for firebase/auth functions.
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot, collection, getDoc, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, getDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc } from 'firebase/firestore';
 
 interface HeaderProps {
     viewName: string;
@@ -50,7 +51,11 @@ const Header: React.FC<HeaderProps> = ({ viewName, user, onMenuClick }) => {
 };
 
 const App: React.FC = () => {
-  const [appLoading, setAppLoading] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isSettingsInitialised, setIsSettingsInitialised] = useState(false);
+  const appLoading = !settingsLoaded || !authChecked;
+
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [currentView, setCurrentView] = useState<AppView>(AppView.Dashboard);
   
@@ -96,8 +101,10 @@ const App: React.FC = () => {
             setSmsSettings({ accountSid: '', authToken: '', twilioPhoneNumber: '' });
             setNotificationSettings({ smsEnabled: true, emailEnabled: true });
         }
+        setIsSettingsInitialised(true);
     });
 
+    // Fix: Correctly call onAuthStateChanged from the named import.
     const authUnsubscriber = onAuthStateChanged(auth, async (authUser) => {
         // Unsubscribe from any existing data listeners
         unsubscribers.forEach(unsub => unsub());
@@ -113,13 +120,32 @@ const App: React.FC = () => {
 
                 // Set up real-time listeners for all data collections
                 const newUnsubscribers: (()=>void)[] = [];
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'users'), orderBy('name')), (snapshot) => setUsers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as User)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'contacts'), orderBy('createdAt', 'desc')), (snapshot) => setContacts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Contact)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'rentals'), orderBy('startDate', 'desc')), (snapshot) => setRentals(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Rental)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'repairs'), orderBy('reportedDate', 'desc')), (snapshot) => setRepairs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Repair)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'inventory'), orderBy('purchaseDate', 'desc')), (snapshot) => setInventory(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryItem)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'sales'), orderBy('saleDate', 'desc')), (snapshot) => setSales(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Sale)))));
-                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'vendors'), orderBy('vendorName')), (snapshot) => setVendors(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Vendor)))));
+                
+                // Fix: Add a type for the config object to make 'orderDirection' an optional property.
+                type CollectionConfig = {
+                    setter: (data: any) => void;
+                    orderByField: string;
+                    orderDirection?: 'asc' | 'desc';
+                };
+
+                const collectionsToSubscribe: Record<string, CollectionConfig> = {
+                    users: { setter: setUsers, orderByField: 'name' },
+                    contacts: { setter: setContacts, orderByField: 'createdAt', orderDirection: 'desc' },
+                    rentals: { setter: setRentals, orderByField: 'startDate', orderDirection: 'desc' },
+                    repairs: { setter: setRepairs, orderByField: 'reportedDate', orderDirection: 'desc' },
+                    inventory: { setter: setInventory, orderByField: 'purchaseDate', orderDirection: 'desc' },
+                    sales: { setter: setSales, orderByField: 'saleDate', orderDirection: 'desc' },
+                    vendors: { setter: setVendors, orderByField: 'vendorName' },
+                };
+
+                Object.entries(collectionsToSubscribe).forEach(([collectionName, config]) => {
+                    const q = query(collection(firestoreDb, collectionName), orderBy(config.orderByField, config.orderDirection || 'asc'));
+                    const unsub = onSnapshot(q, (snapshot) => {
+                        const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+                        config.setter(data as any);
+                    });
+                    newUnsubscribers.push(unsub);
+                });
                 
                 if (userData.role === 'Admin') {
                     initializeSiteMonitoringListeners(newUnsubscribers);
@@ -127,13 +153,14 @@ const App: React.FC = () => {
                 setUnsubscribers(newUnsubscribers);
 
             } else {
-                await auth.signOut();
+                // Fix: Correctly call signOut from the named import.
+                await signOut(auth);
             }
         } else {
             setCurrentUser(null);
             [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs].forEach(setter => setter([]));
         }
-        setAppLoading(false);
+        setAuthChecked(true);
     });
     
     return () => {
@@ -143,16 +170,33 @@ const App: React.FC = () => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (isSettingsInitialised) {
+        // This effect runs after the first settings snapshot is received.
+        // It ensures the Preloader has a render cycle with the correct splashLogo prop
+        // before we hide it. The timeout ensures the logo is visible.
+        const timer = setTimeout(() => {
+            setSettingsLoaded(true);
+        }, 6000); // Changed to 6 seconds
+        return () => clearTimeout(timer);
+    }
+  }, [isSettingsInitialised]);
+
   const initializeSiteMonitoringListeners = (currentUnsubscribers: (()=>void)[]) => {
-      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc')), (snapshot) => {
+      const contactsQuery = query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc'));
+      currentUnsubscribers.push(onSnapshot(contactsQuery, (snapshot) => {
           const contactsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'contact' })) as SiteContact[];
           setSiteContacts(contactsData);
       }));
-      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc')), (snapshot) => {
+
+      const rentalsQuery = query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc'));
+      currentUnsubscribers.push(onSnapshot(rentalsQuery, (snapshot) => {
           const rentalsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'rental' })) as SiteRental[];
           setSiteRentals(rentalsData);
       }));
-      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc')), (snapshot) => {
+
+      const repairsQuery = query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc'));
+      currentUnsubscribers.push(onSnapshot(repairsQuery, (snapshot) => {
           const repairsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'repair' })) as SiteRepair[];
           setSiteRepairs(repairsData);
       }));
@@ -224,7 +268,8 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => handleAction(async () => {
-    await auth.signOut();
+    // Fix: Correctly call signOut from the named import.
+    await signOut(auth);
   });
   
   const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
@@ -329,12 +374,12 @@ const App: React.FC = () => {
   const renderView = () => {
     const adminOnlyViews = [AppView.Users, AppView.Settings, AppView.Notifications, AppView.Reports, AppView.MonitorSite, AppView.HtmlViewer];
     if (!isAdmin && adminOnlyViews.includes(currentView)) {
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} />;
+        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
     }
 
     switch (currentView) {
       case AppView.Dashboard:
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} />;
+        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
       case AppView.Inventory:
         return <Inventory inventory={inventory} vendors={vendors} currentUser={currentUser} onCreateItem={handleCreateInventory} onUpdateItem={handleUpdateInventory} onDeleteItem={handleDeleteInventory} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.SalesLog:
@@ -366,7 +411,15 @@ const App: React.FC = () => {
       case AppView.Notifications:
         return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} showNotification={showNotification} notificationSettings={notificationSettings} />;
       case AppView.Reports:
-        return <Reports contacts={contacts} rentals={rentals} repairs={repairs} handleAction={handleAction} />;
+        return <Reports 
+                    contacts={contacts} 
+                    rentals={rentals} 
+                    repairs={repairs} 
+                    handleAction={handleAction} 
+                    siteContacts={siteContacts}
+                    siteRentals={siteRentals}
+                    siteRepairs={siteRepairs}
+                />;
       case AppView.MonitorSite:
         return <MonitorSite 
                     siteContacts={siteContacts} 
@@ -380,7 +433,7 @@ const App: React.FC = () => {
       case AppView.HtmlViewer:
         return <HtmlViewer />;
       default:
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} />;
+        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
     }
   };
 

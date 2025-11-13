@@ -1158,14 +1158,14 @@
             console.warn("Firebase initialization failed:", error);
         }
 
-        // Preloader with 4-second timer
+        // Preloader with 6-second timer
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('preloader').style.opacity = '0';
                 setTimeout(function() {
                     document.getElementById('preloader').style.display = 'none';
                 }, 500);
-            }, 4000);
+            }, 6000);
         });
 
         // Initialize EmailJS

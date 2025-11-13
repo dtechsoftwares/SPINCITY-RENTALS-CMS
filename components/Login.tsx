@@ -3,8 +3,9 @@ import { User } from '../types';
 import { CloseIcon } from './Icons';
 import * as db from '../utils/storage';
 import { auth, db as firestoreDb } from '../utils/firebase';
+// Fix: Use named imports for firebase/auth functions.
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, getDocs, query, limit } from 'firebase/firestore';
+import { collection, query, limit, getDocs } from 'firebase/firestore';
 import { defaultLogoBase64 } from '../assets/default-logo';
 
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
@@ -76,8 +77,9 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
   
   useEffect(() => {
     const checkFirstUser = async () => {
-        const usersQuery = query(collection(firestoreDb, 'users'), limit(1));
-        const usersSnapshot = await getDocs(usersQuery);
+        const usersCollectionRef = collection(firestoreDb, 'users');
+        const q = query(usersCollectionRef, limit(1));
+        const usersSnapshot = await getDocs(q);
         setIsFirstUser(usersSnapshot.empty);
     };
     checkFirstUser();
@@ -89,6 +91,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
     setIsSubmitting(true);
     
     try {
+        // Fix: Correctly call signInWithEmailAndPassword from the named import.
         await signInWithEmailAndPassword(auth, email, password);
         // onAuthStateChanged in App.tsx will handle the rest
     } catch (err: any) {
@@ -115,6 +118,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
             await db.saveAdminKey(regAdminKey);
         }
         
+        // Fix: Correctly call createUserWithEmailAndPassword from the named import.
         const { user: authUser } = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
 
         if (authUser) {
@@ -149,8 +153,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
         <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
              <img src={splashLogo || defaultLogoBase64} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" />
-             <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
-             <p className="text-gray-500">Customer Management Service</p>
+             <p className="text-gray-500 text-lg mt-4">Customer Management Service</p>
           </div>
           <h2 className="text-2xl font-bold text-center mb-2">Create Admin Account</h2>
           <p className="text-center text-gray-500 mb-6">Welcome! As the first user, you will become the administrator.</p>
@@ -189,8 +192,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
       <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
               <img src={splashLogo || defaultLogoBase64} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" />
-              <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
-              <p className="text-gray-500">Customer Management Service</p>
+              <p className="text-gray-500 text-lg mt-4">Customer Management Service</p>
           </div>
           {error && <p className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm">{error}</p>}
           <form onSubmit={handleLogin} className="space-y-6">

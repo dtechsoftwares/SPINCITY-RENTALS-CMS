@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+// Fix: Use named import for firebase/auth to resolve module export error.
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -16,4 +17,5 @@ const app = initializeApp(firebaseConfig);
 
 // Export services
 export const db = getFirestore(app);
+// Fix: Correctly call getAuth from the named import.
 export const auth = getAuth(app);

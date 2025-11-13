@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Contact, Rental, Repair } from '../types';
-import { ContactsIcon, RentalsIcon, RepairsIcon } from './Icons';
+import { Contact, Rental, Repair, SiteContact, SiteRental, SiteRepair } from '../types';
+import { ContactsIcon, RentalsIcon, RepairsIcon, MonitorIcon } from './Icons';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 
@@ -9,6 +9,9 @@ interface ReportData {
     newRentals: number;
     newRepairs: number;
     completedRepairs: number;
+    newSiteContacts: number;
+    newSiteRentals: number;
+    newSiteRepairs: number;
 }
 
 const StatCard = ({ icon, title, value, color }: { icon: React.ReactNode, title: string, value: number, color: string }) => (
@@ -58,10 +61,13 @@ interface ReportsProps {
     contacts: Contact[];
     rentals: Rental[];
     repairs: Repair[];
+    siteContacts: SiteContact[];
+    siteRentals: SiteRental[];
+    siteRepairs: SiteRepair[];
     handleAction: (action: () => void) => void;
 }
 
-const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAction }) => {
+const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, siteContacts, siteRentals, siteRepairs, handleAction }) => {
     const [period, setPeriod] = useState<ReportPeriod>('daily');
 
     const reportData = useMemo<ReportData>(() => {
@@ -71,7 +77,10 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAct
         const currentYear = now.getFullYear();
 
         const filterByPeriod = (dateString: string) => {
-            const itemDate = new Date(`${dateString}T00:00:00`);
+            if (!dateString) return false;
+            const itemDate = new Date(dateString);
+            if(isNaN(itemDate.getTime())) return false; // Invalid date check
+
             switch (period) {
                 case 'daily':
                     return itemDate.toDateString() === today;
@@ -89,14 +98,19 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAct
             newRentals: rentals.filter(r => filterByPeriod(r.startDate)).length,
             newRepairs: repairs.filter(r => filterByPeriod(r.reportedDate)).length,
             completedRepairs: repairs.filter(r => r.status === 'Completed' && filterByPeriod(r.reportedDate)).length,
+            newSiteContacts: siteContacts.filter(sc => filterByPeriod(sc.timestamp)).length,
+            newSiteRentals: siteRentals.filter(sr => filterByPeriod(sr.timestamp)).length,
+            newSiteRepairs: siteRepairs.filter(sr => filterByPeriod(sr.submissionDate)).length,
         };
-    }, [period, contacts, rentals, repairs]);
+    }, [period, contacts, rentals, repairs, siteContacts, siteRentals, siteRepairs]);
     
     const chartData = [
-        { label: 'Clients', value: reportData.newContacts, color: 'fill-brand-green' },
-        { label: 'Rentals', value: reportData.newRentals, color: 'fill-green-500' },
-        { label: 'New Repairs', value: reportData.newRepairs, color: 'fill-yellow-500' },
-        { label: 'Done Repairs', value: reportData.completedRepairs, color: 'fill-purple-500' },
+        { label: 'CMS Clients', value: reportData.newContacts, color: 'fill-brand-green' },
+        { label: 'CMS Rentals', value: reportData.newRentals, color: 'fill-green-500' },
+        { label: 'CMS Repairs', value: reportData.newRepairs, color: 'fill-yellow-500' },
+        { label: 'Site Contacts', value: reportData.newSiteContacts, color: 'fill-blue-500' },
+        { label: 'Site Rentals', value: reportData.newSiteRentals, color: 'fill-indigo-500' },
+        { label: 'Site Repairs', value: reportData.newSiteRepairs, color: 'fill-pink-500' },
     ];
     
     const handleExportCSV = () => handleAction(() => {
@@ -145,12 +159,21 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAct
                     <PeriodButton value="yearly" label="This Year" />
                 </div>
             </div>
-
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <h2 className="text-2xl font-bold mb-4">CMS Activity</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard icon={<ContactsIcon className="w-6 h-6 text-white"/>} title="New Clients" value={reportData.newContacts} color="bg-brand-green"/>
                 <StatCard icon={<RentalsIcon className="w-6 h-6 text-white"/>} title="New Rentals" value={reportData.newRentals} color="bg-green-500"/>
                 <StatCard icon={<RepairsIcon className="w-6 h-6 text-white"/>} title="New Repairs" value={reportData.newRepairs} color="bg-yellow-500"/>
                 <StatCard icon={<RepairsIcon className="w-6 h-6 text-white"/>} title="Completed Repairs" value={reportData.completedRepairs} color="bg-purple-500"/>
+            </div>
+
+            <h2 className="text-2xl font-bold mb-4 mt-12">Website Submissions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                 <StatCard icon={<ContactsIcon className="w-6 h-6 text-white"/>} title="New Site Contacts" value={reportData.newSiteContacts} color="bg-blue-500"/>
+                <StatCard icon={<RentalsIcon className="w-6 h-6 text-white"/>} title="New Site Rentals" value={reportData.newSiteRentals} color="bg-indigo-500"/>
+                <StatCard icon={<RepairsIcon className="w-6 h-6 text-white"/>} title="New Site Repairs" value={reportData.newSiteRepairs} color="bg-pink-500"/>
+                <StatCard icon={<MonitorIcon className="w-6 h-6 text-white"/>} title="Total Site Submissions" value={reportData.newSiteContacts + reportData.newSiteRentals + reportData.newSiteRepairs} color="bg-gray-500"/>
             </div>
 
             <BarChart data={chartData} />

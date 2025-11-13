@@ -19,15 +19,19 @@ interface DashboardProps {
     rentals: Rental[];
     repairs: Repair[];
     users: User[];
+    currentUser: User;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ contacts, rentals, repairs, users }) => {
+const Dashboard: React.FC<DashboardProps> = ({ contacts, rentals, repairs, users, currentUser }) => {
   const activeRentals = rentals.filter(r => r.status === 'Active').length;
   const openRepairs = repairs.filter(r => r.status === 'Open' || r.status === 'In Progress').length;
   
   return (
     <div className="p-8 text-brand-text">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+       <div className="mb-8">
+        <h1 className="text-3xl font-bold">Welcome back, {currentUser.name}!</h1>
+        <p className="text-gray-500 mt-1">Here's a snapshot of your business activities.</p>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard icon={<ContactsIcon className="w-6 h-6 text-white"/>} title="Total Clients" value={contacts.length} color="bg-brand-green"/>
@@ -36,10 +40,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, rentals, repairs, users
         <StatCard icon={<UsersIcon className="w-6 h-6 text-white"/>} title="System Users" value={users.length} color="bg-purple-500"/>
       </div>
 
-      <div className="bg-lime-50 text-lime-800 p-6 rounded-xl border border-lime-200 shadow-sm">
-        <h2 className="text-2xl font-bold mb-2 text-brand-text">Welcome to SpinCity Rentals CRM</h2>
+      <div className="bg-lime-50 text-lime-800 p-6 rounded-xl border border-lime-200 shadow-sm mt-8">
+        <h2 className="text-2xl font-bold mb-2 text-brand-text">Quick Tips</h2>
         <p className="text-lime-700">
-          This dashboard provides a high-level overview of your property management activities. Use the sidebar to navigate to specific sections for detailed information and actions. You can add new clients, rentals, and more. Our integrated AI will provide helpful summaries and feedback to streamline your workflow.
+            Use the sidebar to manage clients, track rentals, and log repairs. Admins can access advanced settings and user management through the sidebar as well.
         </p>
       </div>
     </div>
