@@ -8,15 +8,15 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white text-brand-text w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-2xl rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text">
             <CloseIcon />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 max-h-[80vh] overflow-y-auto">
           {children}
         </div>
       </div>
@@ -198,10 +198,10 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
   };
 
   return (
-    <div className="p-8 text-brand-text">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8 text-brand-text">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Clients</h1>
-        <button onClick={openAddModal} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
+        <button onClick={openAddModal} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors w-full sm:w-auto">
           Add New Client
         </button>
       </div>
@@ -210,12 +210,12 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
         {contacts.length > 0 ? (
           <ul className="divide-y divide-gray-200">
             {contacts.map(contact => (
-              <li key={contact.id} className="py-4 flex justify-between items-center">
+              <li key={contact.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                   <p className="font-bold text-lg">{contact.fullName}</p>
                   <p className="text-sm text-gray-500">{contact.email}</p>
                 </div>
-                 <div className="flex space-x-4 text-gray-500">
+                 <div className="flex space-x-4 text-gray-500 self-end sm:self-center">
                     <button onClick={() => setViewingContact(contact)} className="hover:text-brand-green">View</button>
                     <button onClick={() => openEditModal(contact)} className="hover:text-brand-green">Edit</button>
                     {isAdmin && <button onClick={() => handleDeleteRequest(contact.id)} className="text-red-500 hover:text-red-400">Delete</button>}

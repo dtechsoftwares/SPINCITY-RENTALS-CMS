@@ -7,8 +7,8 @@ import AdminKeyConfirmationModal from './AdminKeyConfirmationModal';
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white text-brand-text w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-3xl rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text"><CloseIcon /></button>
@@ -199,47 +199,49 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
     };
 
   return (
-    <div className="p-8 text-brand-text">
-        <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8 text-brand-text">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
             <h1 className="text-3xl font-bold">Rentals</h1>
-            <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
+            <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors w-full sm:w-auto">
                 Add New Rental
             </button>
         </div>
 
         <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-            <table className="w-full text-left">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                    <tr>
-                        <th className="p-4 font-semibold">Renter</th>
-                        <th className="p-4 font-semibold">Plan</th>
-                        <th className="p-4 font-semibold">Monthly Rate</th>
-                        <th className="p-4 font-semibold">Status</th>
-                        <th className="p-4 font-semibold">Start Date</th>
-                        <th className="p-4 font-semibold">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rentals.map(rental => {
-                        const contact = contactMap.get(rental.contactId);
-                        return (
-                            <tr key={rental.id} className="border-b border-gray-200">
-                                <td className="p-4 font-medium">{contact ? contact.fullName : `Contact ID: ${rental.contactId}`}</td>
-                                <td className="p-4 text-gray-500">{rental.plan}</td>
-                                <td className="p-4 text-gray-500">${rental.monthlyRate.toFixed(2)}</td>
-                                <td className="p-4"><span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span></td>
-                                <td className="p-4 text-gray-500">{rental.startDate}</td>
-                                <td className="p-4 text-gray-500">
-                                    <div className="flex space-x-4">
-                                        <button onClick={() => handleOpenModal(rental)} className="hover:text-brand-green">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                    </div>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[720px]">
+                    <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
+                        <tr>
+                            <th className="p-4 font-semibold">Renter</th>
+                            <th className="p-4 font-semibold">Plan</th>
+                            <th className="p-4 font-semibold">Monthly Rate</th>
+                            <th className="p-4 font-semibold">Status</th>
+                            <th className="p-4 font-semibold">Start Date</th>
+                            <th className="p-4 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rentals.map(rental => {
+                            const contact = contactMap.get(rental.contactId);
+                            return (
+                                <tr key={rental.id} className="border-b border-gray-200">
+                                    <td className="p-4 font-medium">{contact ? contact.fullName : `Contact ID: ${rental.contactId}`}</td>
+                                    <td className="p-4 text-gray-500">{rental.plan}</td>
+                                    <td className="p-4 text-gray-500">${rental.monthlyRate.toFixed(2)}</td>
+                                    <td className="p-4"><span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span></td>
+                                    <td className="p-4 text-gray-500">{rental.startDate}</td>
+                                    <td className="p-4 text-gray-500">
+                                        <div className="flex space-x-4">
+                                            <button onClick={() => handleOpenModal(rental)} className="hover:text-brand-green">Edit</button>
+                                            {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="text-red-500 hover:text-red-400">Delete</button>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRental ? 'Edit Rental Agreement' : 'Create Rental Agreement'}>

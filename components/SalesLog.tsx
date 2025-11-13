@@ -7,8 +7,8 @@ import AdminKeyConfirmationModal from './AdminKeyConfirmationModal';
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white text-brand-text w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-3xl rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text">
@@ -143,51 +143,53 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
     };
 
     return (
-        <div className="p-8 text-brand-text">
-            <div className="flex justify-between items-center mb-8">
+        <div className="p-4 sm:p-8 text-brand-text">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
                 <h1 className="text-3xl font-bold">Sales Log</h1>
-                <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
+                <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors w-full sm:w-auto">
                     Record New Sale
                 </button>
             </div>
 
             <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                        <tr>
-                            <th className="p-4 font-semibold">Sale ID</th>
-                            <th className="p-4 font-semibold">Sale Date</th>
-                            <th className="p-4 font-semibold">Item Sold</th>
-                            <th className="p-4 font-semibold">Buyer Name</th>
-                            <th className="p-4 font-semibold">Bill of Sale</th>
-                            <th className="p-4 font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sales.map(sale => {
-                            const item = inventoryMap.get(sale.itemId);
-                            return (
-                                <tr key={sale.id} className="border-b border-gray-200">
-                                    <td className="p-4 font-medium">{sale.saleId}</td>
-                                    <td className="p-4 text-gray-500">{sale.saleDate}</td>
-                                    <td className="p-4 text-gray-500">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</td>
-                                    <td className="p-4 text-gray-500">{sale.buyerName}</td>
-                                    <td className="p-4">
-                                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
-                                            View
-                                        </a>
-                                    </td>
-                                    <td className="p-4 text-gray-500">
-                                        <div className="flex space-x-4">
-                                            <button onClick={() => handleOpenModal(sale)} className="hover:text-brand-green">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[720px]">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
+                            <tr>
+                                <th className="p-4 font-semibold">Sale ID</th>
+                                <th className="p-4 font-semibold">Sale Date</th>
+                                <th className="p-4 font-semibold">Item Sold</th>
+                                <th className="p-4 font-semibold">Buyer Name</th>
+                                <th className="p-4 font-semibold">Bill of Sale</th>
+                                <th className="p-4 font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sales.map(sale => {
+                                const item = inventoryMap.get(sale.itemId);
+                                return (
+                                    <tr key={sale.id} className="border-b border-gray-200">
+                                        <td className="p-4 font-medium">{sale.saleId}</td>
+                                        <td className="p-4 text-gray-500">{sale.saleDate}</td>
+                                        <td className="p-4 text-gray-500">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</td>
+                                        <td className="p-4 text-gray-500">{sale.buyerName}</td>
+                                        <td className="p-4">
+                                            <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
+                                                View
+                                            </a>
+                                        </td>
+                                        <td className="p-4 text-gray-500">
+                                            <div className="flex space-x-4">
+                                                <button onClick={() => handleOpenModal(sale)} className="hover:text-brand-green">Edit</button>
+                                                {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="text-red-500 hover:text-red-400">Delete</button>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingSale ? 'Edit Sale Record' : 'Record New Sale'}>

@@ -17,26 +17,30 @@ import Reports from './components/Reports';
 import MonitorSite from './components/MonitorSite';
 import HtmlViewer from './components/HtmlViewer';
 import * as db from './utils/storage';
+import { auth, db as firestoreDb } from './utils/firebase';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
-
-// Make firebase globally available
-declare const firebase: any;
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, onSnapshot, query, orderBy, updateDoc, deleteDoc } from 'firebase/firestore';
 
 interface HeaderProps {
     viewName: string;
     user: User;
+    onMenuClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ viewName, user }) => {
+const Header: React.FC<HeaderProps> = ({ viewName, user, onMenuClick }) => {
     return (
         <header className="bg-brand-light p-4 flex justify-between items-center border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center space-x-4">
+                <button onClick={onMenuClick} className="md:hidden text-brand-text p-1">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
                 <h1 className="text-xl font-bold text-brand-text">{viewName}</h1>
             </div>
             <div className="flex items-center space-x-3">
                 <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />
-                <div>
+                <div className="hidden sm:block">
                     <p className="font-semibold text-brand-text">{user.name}</p>
                     <p className="text-sm text-gray-500">{user.email}</p>
                 </div>
@@ -64,160 +68,135 @@ const App: React.FC = () => {
   const [smsSettings, setSmsSettings] = useState<SmsSettings>({ accountSid: '', authToken: '', twilioPhoneNumber: '' });
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ smsEnabled: true, emailEnabled: true });
   const [adminKey, setAdminKey] = useState<string>('');
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   
   const [notification, setNotification] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [unsubscribers, setUnsubscribers] = useState<(() => void)[]>([]);
 
   // Firebase state
-  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
   const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
   const [siteRentals, setSiteRentals] = useState<SiteRental[]>([]);
   const [siteRepairs, setSiteRepairs] = useState<SiteRepair[]>([]);
 
   useEffect(() => {
-    const loadAppData = () => {
-        try {
-            setAppLoading(true);
-            const loadedUsers = db.loadUsers();
-            setUsers(loadedUsers);
+    // Listener for settings, runs immediately and for all users (even logged out)
+    const settingsUnsubscriber = onSnapshot(doc(firestoreDb, 'settings', 'main'), (docSnap) => {
+        if (docSnap.exists()) {
+            const settingsData = docSnap.data();
+            setAppLogo(settingsData.appLogo || null);
+            setSplashLogo(settingsData.splashLogo || null);
+            setAdminKey(settingsData.adminKey || 'admin');
+            setSmsSettings(settingsData.smsSettings || { accountSid: '', authToken: '', twilioPhoneNumber: '' });
+            setNotificationSettings(settingsData.notificationSettings || { smsEnabled: true, emailEnabled: true });
+        } else {
+            // Handle case where settings doc doesn't exist yet, set defaults
+            setAppLogo(null);
+            setSplashLogo(null);
+            setAdminKey('admin');
+            setSmsSettings({ accountSid: '', authToken: '', twilioPhoneNumber: '' });
+            setNotificationSettings({ smsEnabled: true, emailEnabled: true });
+        }
+    });
 
-            const currentUserId = db.getCurrentUserId();
-            const appUser = currentUserId ? loadedUsers.find(u => u.id === currentUserId) : null;
-            
-            setAppLogo(db.loadAppLogo());
-            setSplashLogo(db.loadSplashLogo());
-            setAdminKey(db.loadAdminKey());
-            setNotificationSettings(db.loadNotificationSettings());
-            setAutoBackupEnabled(db.loadAutoBackupSetting());
+    const authUnsubscriber = onAuthStateChanged(auth, async (authUser) => {
+        // Unsubscribe from any existing data listeners
+        unsubscribers.forEach(unsub => unsub());
+        setUnsubscribers([]);
 
-            if (appUser) {
-                setCurrentUser(appUser);
-                setContacts(db.loadContacts());
-                setRentals(db.loadRentals());
-                setRepairs(db.loadRepairs());
-                setInventory(db.loadInventory());
-                setSales(db.loadSales());
-                setVendors(db.loadVendors());
-                setSmsSettings(db.loadSmsSettings());
-                initializeFirebase();
+        if (authUser) {
+            const userDocRef = doc(firestoreDb, 'users', authUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const userData = { id: userDocSnap.id, ...userDocSnap.data() } as User;
+                setCurrentUser(userData);
+
+                // Set up real-time listeners for all data collections
+                const newUnsubscribers: (()=>void)[] = [];
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'users'), orderBy('name')), (snapshot) => setUsers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as User)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'contacts'), orderBy('createdAt', 'desc')), (snapshot) => setContacts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Contact)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'rentals'), orderBy('startDate', 'desc')), (snapshot) => setRentals(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Rental)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'repairs'), orderBy('reportedDate', 'desc')), (snapshot) => setRepairs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Repair)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'inventory'), orderBy('purchaseDate', 'desc')), (snapshot) => setInventory(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryItem)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'sales'), orderBy('saleDate', 'desc')), (snapshot) => setSales(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Sale)))));
+                newUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'vendors'), orderBy('vendorName')), (snapshot) => setVendors(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Vendor)))));
+                
+                if (userData.role === 'Admin') {
+                    initializeSiteMonitoringListeners(newUnsubscribers);
+                }
+                setUnsubscribers(newUnsubscribers);
+
+            } else {
+                await auth.signOut();
             }
-        } catch (error) {
-            console.error("Error loading app data from localStorage:", error);
-            showNotification("Failed to load data. Your storage might be corrupted.");
-        } finally {
-            setTimeout(() => setAppLoading(false), 1000); // Simulate loading time
+        } else {
+            setCurrentUser(null);
+            [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs].forEach(setter => setter([]));
         }
-    };
+        setAppLoading(false);
+    });
     
-    loadAppData();
-  }, []);
+    return () => {
+        settingsUnsubscriber();
+        authUnsubscriber();
+        unsubscribers.forEach(unsub => unsub());
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const initializeFirebase = () => {
-    if (firebaseInitialized || typeof firebase === 'undefined') return;
-    try {
-        const firebaseConfig = {
-            apiKey: "AIzaSyBjoBK7feqbPzON8BoOZNo4UQ3xbt5ZgkM",
-            authDomain: "spincityrentalsnew.firebaseapp.com",
-            projectId: "spincityrentalsnew",
-            storageBucket: "spincityrentalsnew.firebasestorage.app",
-            messagingSenderId: "252954471415",
-            appId: "1:252954471415:web:01a747ebf09fb92d645cf2"
-        };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        setFirebaseInitialized(true);
-        const firestore = firebase.firestore();
-
-        // Listener for Contact Submissions
-        firestore.collection('contactSubmissions').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-            const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'contact' })) as SiteContact[];
-            setSiteContacts(contactsData);
-        });
-
-        // Listener for Rental Agreements
-        firestore.collection('rentalAgreements').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-            const rentalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'rental' })) as SiteRental[];
-            setSiteRentals(rentalsData);
-        });
-
-        // Listener for Repair Requests
-        firestore.collection('repairRequests').orderBy('submissionDate', 'desc').onSnapshot(snapshot => {
-            const repairsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'repair' })) as SiteRepair[];
-            setSiteRepairs(repairsData);
-        });
-    } catch(e) {
-        console.error("Firebase initialization failed:", e);
-        showNotification("Could not connect to site monitoring database.");
-    }
+  const initializeSiteMonitoringListeners = (currentUnsubscribers: (()=>void)[]) => {
+      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc')), (snapshot) => {
+          const contactsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'contact' })) as SiteContact[];
+          setSiteContacts(contactsData);
+      }));
+      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc')), (snapshot) => {
+          const rentalsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'rental' })) as SiteRental[];
+          setSiteRentals(rentalsData);
+      }));
+      currentUnsubscribers.push(onSnapshot(query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc')), (snapshot) => {
+          const repairsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'repair' })) as SiteRepair[];
+          setSiteRepairs(repairsData);
+      }));
   };
 
   const handleUpdateFirebaseStatus = (id: string, type: 'contact' | 'rental' | 'repair', newStatus: 'new' | 'pending' | 'completed') => {
-    if(!firebaseInitialized) return;
-
     let collectionName = '';
     if (type === 'contact') collectionName = 'contactSubmissions';
     else if (type === 'rental') collectionName = 'rentalAgreements';
     else if (type === 'repair') collectionName = 'repairRequests';
     else return;
 
-    firebase.firestore().collection(collectionName).doc(id).update({ status: newStatus })
+    const docRef = doc(firestoreDb, collectionName, id);
+    updateDoc(docRef, { status: newStatus })
         .then(() => showNotification(`Status updated to ${newStatus}.`))
         .catch((error: any) => {
             console.error("Error updating status: ", error);
             showNotification("Failed to update status.");
         });
-};
+  };
 
-const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' | 'repair') => {
-    if(!firebaseInitialized) return;
-
+  const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' | 'repair') => {
     let collectionName = '';
     if (type === 'contact') collectionName = 'contactSubmissions';
     else if (type === 'rental') collectionName = 'rentalAgreements';
     else if (type === 'repair') collectionName = 'repairRequests';
     else return;
 
-    handleAction(() => {
-        firebase.firestore().collection(collectionName).doc(id).delete()
-            .then(() => showNotification(`Submission deleted successfully.`))
-            .catch((error: any) => {
-                console.error("Error deleting submission: ", error);
-                showNotification("Failed to delete submission.");
-            });
-    });
-};
-
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-        if (autoBackupEnabled) {
-            const jsonData = db.getBackupData();
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            const date = new Date().toISOString().split('T')[0];
-            link.download = `spincity_autobackup_${date}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+    handleAction(async () => {
+        try {
+            await deleteDoc(doc(firestoreDb, collectionName, id));
+            showNotification(`Submission deleted successfully.`);
+        } catch (error) {
+            console.error("Error deleting submission: ", error);
+            showNotification("Failed to delete submission.");
         }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [autoBackupEnabled]);
+    });
+  };
   
   const showNotification = (message: string) => {
     setNotification(message);
   };
 
-  const handleAction = async (action: () => void | Promise<any>) => {
+  const handleAction = async <T,>(action: () => Promise<T> | T): Promise<T | void> => {
     setIsActionLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -232,210 +211,98 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
   };
 
   const handleViewChange = (view: AppView) => {
-    if (view === currentView) return;
+    if (view === currentView) {
+        if (window.innerWidth < 768) setIsSidebarOpen(false);
+        return;
+    };
     handleAction(() => {
         setCurrentView(view);
     });
-  };
-
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    db.setCurrentUserId(user.id);
-    handleViewChange(AppView.Dashboard);
-    showNotification(`Welcome back, ${user.name}!`);
-    setContacts(db.loadContacts());
-    setRentals(db.loadRentals());
-    setRepairs(db.loadRepairs());
-    if (user.role === 'Admin') {
-        initializeFirebase();
+    if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
     }
   };
 
-  const handleRegisterSuccess = (user: User) => {
-    const allUsers = [...users, user];
-    setUsers(allUsers);
-    setAdminKey(db.loadAdminKey());
-    handleLogin(user);
-  };
-
-  const handleLogout = () => handleAction(() => {
-    db.setCurrentUserId(null);
-    setCurrentUser(null);
-    setFirebaseInitialized(false);
+  const handleLogout = () => handleAction(async () => {
+    await auth.signOut();
   });
   
-  const handleCreateUser = (newUser: Omit<User, 'id'>) => handleAction(() => {
-      const createdUser = db.createUser(newUser);
-      setUsers(users => [...users, createdUser]);
-  });
-  
-  const handleUpdateUser = (updatedUser: User) => handleAction(() => {
-    db.updateUser(updatedUser);
-    const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-    setUsers(updatedUsers);
-    if (currentUser && currentUser.id === updatedUser.id) {
-        setCurrentUser(updatedUser);
-    }
-  });
-  
-  const handleDeleteUser = (userId: string) => handleAction(() => {
-    db.deleteUser(userId);
-    setUsers(users.filter(u => u.id !== userId));
-  });
+  const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
+  const handleDeleteUser = (userId: string) => handleAction(() => db.deleteUser(userId));
+  const handleUpdateLogo = (logo: string | null) => handleAction(async () => { await db.saveAppLogo(logo); setAppLogo(logo); });
+  const handleUpdateSplashLogo = (logo: string | null) => handleAction(async () => { await db.saveSplashLogo(logo); setSplashLogo(logo); });
 
-  const handleUpdateLogo = (logo: string | null) => handleAction(() => {
-    db.saveAppLogo(logo);
-    setAppLogo(logo);
-  });
+  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(() => db.createContact(newContact));
+  const handleUpdateContact = (updatedContact: Contact) => handleAction(() => db.updateContact(updatedContact));
+  const handleDeleteContact = (contactId: string) => handleAction(() => db.deleteContact(contactId));
 
-  const handleUpdateSplashLogo = (logo: string | null) => handleAction(() => {
-    db.saveSplashLogo(logo);
-    setSplashLogo(logo);
-  });
+  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(() => db.createRental(newRental));
+  const handleUpdateRental = (updatedRental: Rental) => handleAction(() => db.updateRental(updatedRental));
+  const handleDeleteRental = (rentalId: string) => handleAction(() => db.deleteRental(rentalId));
 
-  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(() => {
-    const createdContact = db.createContact(newContact);
-    setContacts([createdContact, ...contacts]);
-  });
-  
-  const handleUpdateContact = (updatedContact: Contact) => handleAction(() => {
-    db.updateContact(updatedContact);
-    setContacts(contacts.map(c => c.id === updatedContact.id ? updatedContact : c));
-  });
-  
-  const handleDeleteContact = (contactId: string) => handleAction(() => {
-    db.deleteContact(contactId);
-    setContacts(contacts.filter(c => c.id !== contactId));
-  });
+  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(() => db.createRepair(newRepair));
+  const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => db.updateRepair(updatedRepair));
+  const handleDeleteRepair = (repairId: string) => handleAction(() => db.deleteRepair(repairId));
 
-  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(() => {
-    const createdRental = db.createRental(newRental);
-    setRentals([createdRental, ...rentals]);
-  });
+  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(() => db.createInventory(newItem));
+  const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => db.updateInventory(updatedItem));
+  const handleDeleteInventory = (itemId: string) => handleAction(() => db.deleteInventory(itemId));
 
-  const handleUpdateRental = (updatedRental: Rental) => handleAction(() => {
-    db.updateRental(updatedRental);
-    setRentals(rentals.map(r => r.id === updatedRental.id ? updatedRental : r));
-  });
-
-  const handleDeleteRental = (rentalId: string) => handleAction(() => {
-    db.deleteRental(rentalId);
-    setRentals(rentals.filter(r => r.id !== rentalId));
-  });
-
-  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(() => {
-    const createdRepair = db.createRepair(newRepair);
-    setRepairs([createdRepair, ...repairs]);
-  });
-
-  const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => {
-    db.updateRepair(updatedRepair);
-    setRepairs(repairs.map(r => r.id === updatedRepair.id ? updatedRepair : r));
-  });
-
-  const handleDeleteRepair = (repairId: string) => handleAction(() => {
-    db.deleteRepair(repairId);
-    setRepairs(repairs.filter(r => r.id !== repairId));
-  });
-
-  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(() => {
-    const createdItem = db.createInventory(newItem);
-    setInventory([createdItem, ...inventory]);
-  });
-
-  const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => {
-    db.updateInventory(updatedItem);
-    setInventory(inventory => inventory.map(i => i.id === updatedItem.id ? updatedItem : i));
-  });
-
-  const handleDeleteInventory = (itemId: string) => handleAction(() => {
-    db.deleteInventory(itemId);
-    setInventory(inventory.filter(i => i.id !== itemId));
-  });
-
-  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(() => {
-    const createdSale = db.createSale(newSale);
-    setSales(sales => [createdSale, ...sales]);
+  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(async () => {
+    await db.createSale(newSale);
     const soldItem = inventory.find(i => i.id === newSale.itemId);
     if(soldItem) {
-        handleUpdateInventory({ ...soldItem, status: 'Sold' });
+        await handleUpdateInventory({ ...soldItem, status: 'Sold' });
     }
   });
 
-  const handleUpdateSale = (updatedSale: Sale) => handleAction(() => {
+  const handleUpdateSale = (updatedSale: Sale) => handleAction(async () => {
     const originalSale = sales.find(s => s.id === updatedSale.id);
-    db.updateSale(updatedSale);
-    setSales(sales.map(s => s.id === updatedSale.id ? updatedSale : s));
+    await db.updateSale(updatedSale);
 
     if (originalSale && originalSale.itemId !== updatedSale.itemId) {
         const oldItem = inventory.find(i => i.id === originalSale.itemId);
         const newItem = inventory.find(i => i.id === updatedSale.itemId);
-        if(oldItem) handleUpdateInventory({ ...oldItem, status: 'Available' });
-        if(newItem) handleUpdateInventory({ ...newItem, status: 'Sold' });
+        if(oldItem) await handleUpdateInventory({ ...oldItem, status: 'Available' });
+        if(newItem) await handleUpdateInventory({ ...newItem, status: 'Sold' });
     }
   });
 
-  const handleDeleteSale = (saleId: string) => handleAction(() => {
+  const handleDeleteSale = (saleId: string) => handleAction(async () => {
     const saleToDelete = sales.find(s => s.id === saleId);
-    db.deleteSale(saleId);
-    setSales(sales.filter(s => s.id !== saleId));
+    await db.deleteSale(saleId);
     if(saleToDelete) {
         const item = inventory.find(i => i.id === saleToDelete.itemId);
-        if(item) handleUpdateInventory({ ...item, status: 'Available' });
+        if(item) await handleUpdateInventory({ ...item, status: 'Available' });
     }
   });
 
-  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(() => {
-    const createdVendor = db.createVendor(newVendor);
-    setVendors([createdVendor, ...vendors]);
-  });
+  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(() => db.createVendor(newVendor));
+  const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => db.updateVendor(updatedVendor));
+  const handleDeleteVendor = (vendorId: string) => handleAction(() => db.deleteVendor(vendorId));
 
-  const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => {
-    db.updateVendor(updatedVendor);
-    setVendors(vendors.map(v => v.id === updatedVendor.id ? updatedVendor : v));
-  });
-
-  const handleDeleteVendor = (vendorId: string) => handleAction(() => {
-    db.deleteVendor(vendorId);
-    setVendors(vendors.filter(v => v.id !== vendorId));
-  });
-
-  const handleUpdateSmsSettings = (settings: SmsSettings) => handleAction(() => {
-    db.saveSmsSettings(settings);
+  const handleUpdateSmsSettings = (settings: SmsSettings) => handleAction(async () => {
+    await db.saveSmsSettings(settings);
     setSmsSettings(settings);
   });
 
-  const handleUpdateNotificationSettings = (settings: NotificationSettings) => handleAction(() => {
-    db.saveNotificationSettings(settings);
+  const handleUpdateNotificationSettings = (settings: NotificationSettings) => handleAction(async () => {
+    await db.saveNotificationSettings(settings);
     setNotificationSettings(settings);
   });
   
-  const handleUpdateAdminKey = (key: string) => handleAction(() => {
-    db.saveAdminKey(key);
+  const handleUpdateAdminKey = (key: string) => handleAction(async () => {
+    await db.saveAdminKey(key);
     setAdminKey(key);
     showNotification('Admin Registration Key updated successfully!');
   });
   
-  const handleRestoreData = (jsonData: string) => handleAction(() => {
-      const result = db.restoreBackupData(jsonData);
-      showNotification(result.message);
-      if (result.success) {
-          setTimeout(() => window.location.reload(), 2000);
-      }
-  });
-
-  const handleToggleAutoBackup = (enabled: boolean) => handleAction(() => {
-    db.saveAutoBackupSetting(enabled);
-    setAutoBackupEnabled(enabled);
-    showNotification(`Automatic backup on exit has been ${enabled ? 'enabled' : 'disabled'}.`);
-  });
-
   if (appLoading) {
     return <Preloader splashLogo={splashLogo} />;
   }
 
   if (!currentUser) {
-    return <Login users={users} onLogin={handleLogin} onRegisterSuccess={handleRegisterSuccess} adminKey={adminKey} splashLogo={splashLogo} />;
+    return <Login adminKey={adminKey} splashLogo={splashLogo} showNotification={showNotification} />;
   }
 
   const isAdmin = currentUser.role === 'Admin';
@@ -475,7 +342,7 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
       case AppView.Vendors:
         return <Vendors vendors={vendors} inventory={inventory} currentUser={currentUser} onCreateVendor={handleCreateVendor} onUpdateVendor={handleUpdateVendor} onDeleteVendor={handleDeleteVendor} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.Users:
-        return <Users users={users} currentUser={currentUser} onCreateUser={handleCreateUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} showNotification={showNotification} adminKey={adminKey} />;
+        return <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.Contacts:
         return <Contacts contacts={contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.Settings:
@@ -489,9 +356,6 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
                     currentSplashLogo={splashLogo}
                     onUpdateSplashLogo={handleUpdateSplashLogo}
                     showNotification={showNotification}
-                    onRestoreData={handleRestoreData}
-                    autoBackupEnabled={autoBackupEnabled}
-                    onToggleAutoBackup={handleToggleAutoBackup}
                     notificationSettings={notificationSettings}
                     onUpdateNotificationSettings={handleUpdateNotificationSettings}
                 />;
@@ -521,16 +385,27 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
   };
 
   return (
-    <div className="flex h-screen bg-white">
-      {notification && <Notification message={notification} onClose={() => setNotification('')} />}
-      {isActionLoading && <Spinner />}
-      <Sidebar currentView={currentView} setCurrentView={handleViewChange} onLogout={handleLogout} appLogo={appLogo} currentUser={currentUser} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header viewName={getViewName(currentView)} user={currentUser} />
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          {renderView()}
-        </main>
-      </div>
+    <div className="flex h-screen bg-white overflow-hidden">
+        {notification && <Notification message={notification} onClose={() => setNotification('')} />}
+        {isActionLoading && <Spinner />}
+    
+        <div className={`fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <Sidebar currentView={currentView} setCurrentView={handleViewChange} onLogout={handleLogout} appLogo={appLogo} currentUser={currentUser} />
+        </div>
+    
+        <div className="flex-1 flex flex-col">
+            <Header viewName={getViewName(currentView)} user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
+            <main className="flex-1 overflow-y-auto bg-gray-50">
+                {renderView()}
+            </main>
+        </div>
+    
+        {isSidebarOpen && (
+            <div 
+                className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" 
+                onClick={() => setIsSidebarOpen(false)}
+            ></div>
+        )}
     </div>
   );
 };

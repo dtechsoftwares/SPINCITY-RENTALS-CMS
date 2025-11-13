@@ -15,8 +15,8 @@ const StatCard = ({ title, value, color }: { title: string, value: number, color
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
     if (!isOpen) return null;
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 animate-fade-in-down">
-        <div className="bg-white text-brand-text w-full max-w-4xl rounded-xl shadow-2xl border border-gray-200">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 animate-fade-in-down">
+        <div className="bg-white text-brand-text w-full max-w-md md:max-w-4xl rounded-xl shadow-2xl border border-gray-200">
           <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
             <h2 className="text-xl font-bold">{title}</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-brand-text"><CloseIcon /></button>
@@ -178,7 +178,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                     className="w-full md:w-1/3 mb-4 bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text"
                 />
                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left min-w-[720px]">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                             <tr>
                                 {columns.map(col => <th key={col.key} className="p-4 font-semibold">{col.header}</th>)}
@@ -238,7 +238,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
 
 
     return (
-        <div className="p-8 text-brand-text">
+        <div className="p-4 sm:p-8 text-brand-text">
             <h1 className="text-3xl font-bold mb-2">Site Monitoring Dashboard</h1>
             <p className="text-gray-500 mb-8">Live data from your public website's forms.</p>
 
@@ -249,7 +249,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                 <StatCard title="Repair Requests" value={stats.repairs} color="border-yellow-500" />
             </div>
             
-            <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg">
+            <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg overflow-x-auto">
                 <TabButton id="overview" label="All Submissions" />
                 <TabButton id="contacts" label="Contact Forms" />
                 <TabButton id="rentals" label="Rental Agreements" />

@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { CloseIcon } from './Icons';
 import * as db from '../utils/storage';
+import { auth, db as firestoreDb } from '../utils/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
       <div className="bg-white text-brand-text w-full max-w-md rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
@@ -55,20 +58,19 @@ const PasswordToggleIcon = ({ show, onToggle }: { show: boolean, onToggle: () =>
 
 
 interface LoginProps {
-  users: User[];
-  onLogin: (user: User) => void;
-  onRegisterSuccess: (user: User) => void;
   adminKey: string;
   splashLogo: string | null;
+  showNotification: (message: string) => void;
 }
 
-const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminKey, splashLogo }) => {
+const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isFirstUser, setIsFirstUser] = useState<boolean | null>(null);
 
   // Registration state
   const [regName, setRegName] = useState('');
@@ -78,23 +80,29 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminK
   const [regError, setRegError] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showRegAdminKey, setShowRegAdminKey] = useState(false);
+  
+  useEffect(() => {
+    const checkFirstUser = async () => {
+        const usersQuery = query(collection(firestoreDb, 'users'), limit(1));
+        const usersSnapshot = await getDocs(usersQuery);
+        setIsFirstUser(usersSnapshot.empty);
+    };
+    checkFirstUser();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
     
-    await new Promise(res => setTimeout(res, 300));
-
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (user && user.password === password) {
-        onLogin(user);
-    } else {
-        setError('Invalid email or password.');
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged in App.tsx will handle the rest
+    } catch (err: any) {
+        setError(err.message || 'Invalid email or password.');
+    } finally {
+        setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -102,49 +110,50 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminK
     setRegError('');
     setIsSubmitting(true);
     
-    await new Promise(res => setTimeout(res, 300));
-
-    if (regPassword.length < 4) {
-        setRegError("Password should be at least 4 characters.");
-        setIsSubmitting(false);
-        return;
-    }
-    
-    if (users.some(u => u.email.toLowerCase() === regEmail.toLowerCase())) {
-        setRegError("An account with this email already exists.");
-        setIsSubmitting(false);
-        return;
-    }
-
-    const isFirstUser = users.length === 0;
-    if (isFirstUser) {
-        if (regAdminKey.length < 4) {
-            setRegError('Admin Key must be at least 4 characters long.');
-            setIsSubmitting(false);
-            return;
+    try {
+        if (regPassword.length < 6) {
+            throw new Error("Password should be at least 6 characters.");
         }
-        db.saveAdminKey(regAdminKey);
+        
+        if (isFirstUser) {
+            if (regAdminKey.length < 4) {
+                throw new Error('Admin Key must be at least 4 characters long.');
+            }
+            await db.saveAdminKey(regAdminKey);
+        }
+        
+        const { user: authUser } = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
+
+        if (authUser) {
+            const newUserForFirestore: Omit<User, 'id' | 'password'> = {
+                name: regName,
+                email: regEmail,
+                role: isFirstUser ? 'Admin' : 'User',
+                avatar: `https://i.pravatar.cc/80?u=${authUser.uid}`
+            };
+            await db.createUserProfile(authUser.uid, newUserForFirestore);
+            showNotification('Registration successful! Welcome.');
+            setIsRegisterModalOpen(false);
+            // onAuthStateChanged will handle login
+        } else {
+            throw new Error("Could not create user account.");
+        }
+
+    } catch (err: any) {
+        setRegError(err.message || "An error occurred during registration.");
+    } finally {
+        setIsSubmitting(false);
     }
-
-    const newUser: Omit<User, 'id'> = {
-        name: regName,
-        email: regEmail,
-        password: regPassword,
-        role: isFirstUser ? 'Admin' : 'User',
-        avatar: `https://picsum.photos/seed/${regName}/80/80`
-    };
-
-    const createdUser = db.createUser(newUser);
-    onRegisterSuccess(createdUser);
-
-    setIsSubmitting(false);
-    setIsRegisterModalOpen(false);
   };
   
-  if (users.length === 0) {
+  if (isFirstUser === null) {
+      return <div className="min-h-screen bg-brand-green flex justify-center items-center"><div className="w-16 h-16 border-4 border-t-4 border-gray-200 border-t-white rounded-full animate-spin"></div></div>;
+  }
+  
+  if (isFirstUser) {
     return (
       <div className="min-h-screen bg-brand-green flex flex-col justify-center items-center p-4">
-        <div className="max-w-md w-full mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
+        <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
              {splashLogo ? <img src={splashLogo} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" /> : <DefaultLogo />}
              <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
@@ -158,7 +167,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminK
             <Input label="Full Name" name="name" value={regName} onChange={(e) => setRegName(e.target.value)} required />
             <Input label="Email Address" type="email" name="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required />
             <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Password (min. 4 characters)<span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Password (min. 6 characters)<span className="text-red-500">*</span></label>
                 <div className="relative">
                     <input type={showRegPassword ? 'text' : 'password'} name="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text pr-10" />
                     <PasswordToggleIcon show={showRegPassword} onToggle={() => setShowRegPassword(!showRegPassword)} />
@@ -184,7 +193,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminK
 
   return (
     <div className="min-h-screen bg-brand-green flex flex-col justify-center items-center p-4">
-      <div className="max-w-md w-full mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
+      <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
               {splashLogo ? <img src={splashLogo} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" /> : <DefaultLogo />}
               <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
@@ -233,7 +242,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onRegisterSuccess, adminK
               <Input label="Full Name" name="name" value={regName} onChange={(e) => setRegName(e.target.value)} required />
               <Input label="Email Address" type="email" name="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required />
               <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Password (min. 4 characters)<span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Password (min. 6 characters)<span className="text-red-500">*</span></label>
                   <div className="relative">
                       <input type={showRegPassword ? 'text' : 'password'} name="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text pr-10" />
                       <PasswordToggleIcon show={showRegPassword} onToggle={() => setShowRegPassword(!showRegPassword)} />

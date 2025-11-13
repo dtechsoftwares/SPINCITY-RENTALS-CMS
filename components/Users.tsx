@@ -7,15 +7,15 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white text-brand-text w-full max-w-lg rounded-xl shadow-2xl border border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-lg rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text">
             <CloseIcon />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 max-h-[80vh] overflow-y-auto">
           {children}
         </div>
       </div>
@@ -63,14 +63,13 @@ const UserDetailsModal = ({ user, onClose }: { user: User | null; onClose: () =>
 interface UsersProps {
     users: User[];
     currentUser: User;
-    onCreateUser: (user: Omit<User, 'id'>) => void;
     onUpdateUser: (user: User) => void;
     onDeleteUser: (userId: string) => void;
     showNotification: (message: string) => void;
     adminKey: string;
 }
 
-const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdateUser, onDeleteUser, showNotification, adminKey }) => {
+const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDeleteUser, showNotification, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -81,22 +80,9 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdat
 
     useEffect(() => {
         if (editingUser) {
-            setFormData({ ...editingUser, password: '' }); // Don't show current password
-        } else {
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                role: 'User',
-                avatar: 'https://picsum.photos/seed/newuser/80/80'
-            });
+            setFormData(editingUser);
         }
     }, [editingUser]);
-    
-    const openModalForCreate = () => {
-        setEditingUser(null);
-        setIsModalOpen(true);
-    };
     
     const openModalForEdit = (user: User) => {
         setEditingUser(user);
@@ -140,15 +126,8 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdat
             return;
         }
         if (editingUser) {
-            onUpdateUser({ ...editingUser, ...formData, password: formData.password || undefined });
+            onUpdateUser({ ...editingUser, ...formData });
             showNotification('User updated successfully.');
-        } else {
-            if (!formData.password) {
-                 alert('Password is required for new users.');
-                 return;
-            }
-            onCreateUser(formData as Omit<User, 'id'>);
-            showNotification('User created successfully.');
         }
         handleCloseModal();
     };
@@ -168,58 +147,56 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdat
     };
     
   return (
-    <div className="p-8 text-brand-text">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8 text-brand-text">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Users</h1>
-        {isAdmin && (
-            <button onClick={openModalForCreate} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
-            Create New User
-            </button>
-        )}
+        <p className="text-gray-500 text-sm sm:text-right">New users can be added via the registration page.<br/>You can manage user roles here.</p>
       </div>
 
       <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-            <tr>
-              <th className="p-4 font-semibold">Name</th>
-              <th className="p-4 font-semibold">Email</th>
-              <th className="p-4 font-semibold">Role</th>
-              <th className="p-4 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-               <tr key={user.id} className="border-b border-gray-200">
-                <td className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
-                    <span className="font-medium">{user.name}{user.id === currentUser.id && " (You)"}</span>
-                  </div>
-                </td>
-                <td className="p-4 text-gray-500">{user.email}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 text-sm rounded-full font-semibold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
-                    {user.role}
-                  </span>
-                </td>
-                <td className="p-4 text-gray-500">
-                  <div className="flex space-x-4">
-                    <button onClick={() => openModalForView(user)} className="hover:text-brand-green">View</button>
-                    {isAdmin && (
-                        <>
-                            <button onClick={() => openModalForEdit(user)} className="hover:text-brand-green">Edit</button>
-                            {user.id !== currentUser.id && (
-                               <button onClick={() => handleDeleteRequest(user.id)} className="text-red-500 hover:text-red-400">Delete</button>
-                            )}
-                        </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[640px]">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
+                <tr>
+                <th className="p-4 font-semibold">Name</th>
+                <th className="p-4 font-semibold">Email</th>
+                <th className="p-4 font-semibold">Role</th>
+                <th className="p-4 font-semibold">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {users.map(user => (
+                <tr key={user.id} className="border-b border-gray-200">
+                    <td className="p-4">
+                    <div className="flex items-center space-x-3">
+                        <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                        <span className="font-medium">{user.name}{user.id === currentUser.id && " (You)"}</span>
+                    </div>
+                    </td>
+                    <td className="p-4 text-gray-500">{user.email}</td>
+                    <td className="p-4">
+                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
+                        {user.role}
+                    </span>
+                    </td>
+                    <td className="p-4 text-gray-500">
+                    <div className="flex space-x-4">
+                        <button onClick={() => openModalForView(user)} className="hover:text-brand-green">View</button>
+                        {isAdmin && (
+                            <>
+                                <button onClick={() => openModalForEdit(user)} className="hover:text-brand-green">Edit</button>
+                                {user.id !== currentUser.id && (
+                                <button onClick={() => handleDeleteRequest(user.id)} className="text-red-500 hover:text-red-400">Delete</button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                    </td>
+                </tr>
+                ))}
+            </tbody>
+            </table>
+        </div>
       </div>
 
        <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingUser ? 'Edit User' : 'Create New User'}>
@@ -231,10 +208,6 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdat
               <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
                   <input type="email" name="email" value={formData.email || ''} onChange={handleInputChange} className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green" />
-              </div>
-              <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
-                  <input type="password" name="password" placeholder={editingUser ? "Leave blank to keep current password" : ""} value={formData.password || ''} onChange={handleInputChange} className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green" />
               </div>
                <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Profile Image</label>
@@ -274,7 +247,7 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onCreateUser, onUpdat
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete User"
-        message="Are you sure you want to permanently delete this user?"
+        message="Are you sure you want to permanently delete this user? This only removes them from the CMS, not from the authentication system."
         adminKey={adminKey}
         showNotification={showNotification}
       />

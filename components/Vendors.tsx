@@ -7,8 +7,8 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white text-brand-text w-full max-w-2xl rounded-xl shadow-2xl border border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-2xl rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text">
@@ -132,46 +132,48 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
     };
 
     return (
-        <div className="p-8 text-brand-text">
-            <div className="flex justify-between items-center mb-8">
+        <div className="p-4 sm:p-8 text-brand-text">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
                 <h1 className="text-3xl font-bold">Vendor Management</h1>
-                <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
+                <button onClick={() => handleOpenModal(null)} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors w-full sm:w-auto">
                     + Add New Vendor
                 </button>
             </div>
 
             <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                        <tr>
-                            <th className="p-4 font-semibold">Vendor ID</th>
-                            <th className="p-4 font-semibold">Vendor Name</th>
-                            <th className="p-4 font-semibold">Contact Person</th>
-                            <th className="p-4 font-semibold">Phone</th>
-                            <th className="p-4 font-semibold">Email</th>
-                            <th className="p-4 font-semibold">Items Purchased</th>
-                            <th className="p-4 font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {vendors.map(vendor => (
-                            <tr key={vendor.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                <td className="p-4 font-medium">{vendor.vendorId}</td>
-                                <td className="p-4 text-gray-600">{vendor.vendorName}</td>
-                                <td className="p-4 text-gray-600">{vendor.contactPerson}</td>
-                                <td className="p-4 text-gray-600">{vendor.phone}</td>
-                                <td className="p-4 text-gray-600">{vendor.email}</td>
-                                <td className="p-4 text-gray-600 font-medium text-center">{itemsPurchasedMap.get(vendor.vendorName) || 0}</td>
-                                <td className="p-4 text-gray-500">
-                                    <div className="flex space-x-4">
-                                        <button onClick={() => handleOpenModal(vendor)} className="hover:text-brand-green">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[720px]">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
+                            <tr>
+                                <th className="p-4 font-semibold">Vendor ID</th>
+                                <th className="p-4 font-semibold">Vendor Name</th>
+                                <th className="p-4 font-semibold">Contact Person</th>
+                                <th className="p-4 font-semibold">Phone</th>
+                                <th className="p-4 font-semibold">Email</th>
+                                <th className="p-4 font-semibold">Items Purchased</th>
+                                <th className="p-4 font-semibold">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {vendors.map(vendor => (
+                                <tr key={vendor.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="p-4 font-medium">{vendor.vendorId}</td>
+                                    <td className="p-4 text-gray-600">{vendor.vendorName}</td>
+                                    <td className="p-4 text-gray-600">{vendor.contactPerson}</td>
+                                    <td className="p-4 text-gray-600">{vendor.phone}</td>
+                                    <td className="p-4 text-gray-600">{vendor.email}</td>
+                                    <td className="p-4 text-gray-600 font-medium text-center">{itemsPurchasedMap.get(vendor.vendorName) || 0}</td>
+                                    <td className="p-4 text-gray-500">
+                                        <div className="flex space-x-4">
+                                            <button onClick={() => handleOpenModal(vendor)} className="hover:text-brand-green">Edit</button>
+                                            {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="text-red-500 hover:text-red-400">Delete</button>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingVendor ? 'Edit Vendor' : 'Add New Vendor'}>

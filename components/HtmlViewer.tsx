@@ -124,15 +124,15 @@ const HtmlViewer: React.FC = () => {
 -->`;
 
     return (
-        <div className="p-8 text-brand-text h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+        <div className="p-4 sm:p-8 text-brand-text h-full flex flex-col">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">HTML Email Viewer</h1>
                     <p className="text-gray-500 mt-1">
                         Paste raw email HTML to render content and download embedded images.
                     </p>
                 </div>
-                <div className="flex space-x-4">
+                <div className="flex flex-wrap gap-4">
                     <button
                         onClick={handleDownload}
                         disabled={images.length === 0 || isDownloading}
@@ -151,7 +151,7 @@ const HtmlViewer: React.FC = () => {
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden">
                 {/* HTML Input Panel */}
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full min-h-[300px] md:min-h-0">
                     <h2 className="text-lg font-semibold mb-2">HTML Source Code</h2>
                     <textarea
                         value={htmlContent}
@@ -163,10 +163,10 @@ const HtmlViewer: React.FC = () => {
                 </div>
 
                 {/* Rendered Preview Panel */}
-                <div className="flex flex-col h-full">
-                    <div className="flex justify-between items-center mb-2">
+                <div className="flex flex-col h-full min-h-[300px] md:min-h-0">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2 gap-2">
                         <h2 className="text-lg font-semibold">Live Preview</h2>
-                        <div className="text-sm bg-gray-100 px-3 py-1 rounded-full">
+                        <div className="text-sm bg-gray-100 px-3 py-1 rounded-full text-center">
                             <span className="font-semibold">{customerName || 'No Name Detected'}</span> | <span className="text-brand-green font-semibold">{images.length}</span> Image(s) Found
                         </div>
                     </div>
