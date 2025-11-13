@@ -140,71 +140,31 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
                 </button>
             </div>
 
-            <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                {/* Table for medium and up screens */}
-                <div className="overflow-x-auto hidden md:block">
-                    <table className="w-full text-left min-w-[720px]">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                            <tr>
-                                <th className="p-4 font-semibold">Vendor ID</th>
-                                <th className="p-4 font-semibold">Vendor Name</th>
-                                <th className="p-4 font-semibold">Contact Person</th>
-                                <th className="p-4 font-semibold">Phone</th>
-                                <th className="p-4 font-semibold">Email</th>
-                                <th className="p-4 font-semibold">Items Purchased</th>
-                                <th className="p-4 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {vendors.map(vendor => (
-                                <tr key={vendor.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="p-4 font-medium">{vendor.vendorId}</td>
-                                    <td className="p-4 text-gray-600">{vendor.vendorName}</td>
-                                    <td className="p-4 text-gray-600">{vendor.contactPerson}</td>
-                                    <td className="p-4 text-gray-600">{vendor.phone}</td>
-                                    <td className="p-4 text-gray-600">{vendor.email}</td>
-                                    <td className="p-4 text-gray-600 font-medium text-center">{itemsPurchasedMap.get(vendor.vendorName) || 0}</td>
-                                    <td className="p-4 text-gray-500">
-                                        <div className="flex space-x-4">
-                                            <button onClick={() => handleOpenModal(vendor)} className="hover:text-brand-green">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Cards for small screens */}
-                <div className="md:hidden">
+            <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+                {vendors.length > 0 ? (
                     <ul className="divide-y divide-gray-200">
                         {vendors.map(vendor => (
-                            <li key={vendor.id} className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg">{vendor.vendorName}</p>
-                                        <p className="text-sm text-gray-500">{vendor.vendorId}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-semibold">{vendor.contactPerson}</p>
-                                        <p className="text-sm text-gray-500">Items: {itemsPurchasedMap.get(vendor.vendorName) || 0}</p>
+                            <li key={vendor.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
+                                    <p className="font-bold text-lg">{vendor.vendorName}</p>
+                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                        <span>{vendor.contactPerson}</span>
+                                        <span>{vendor.phone}</span>
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{vendor.phone}</p>
-                                    <p className="text-sm text-gray-500 break-all">{vendor.email}</p>
-                                </div>
-                                <div className="flex justify-end items-center pt-2 border-t">
-                                    <div className="flex space-x-4 text-sm">
-                                        <button onClick={() => handleOpenModal(vendor)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                <div className="flex items-center gap-4 self-end sm:self-center">
+                                    <span className="text-sm text-gray-600 font-medium">Items: {itemsPurchasedMap.get(vendor.vendorName) || 0}</span>
+                                     <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => handleOpenModal(vendor)} className="hover:text-brand-green">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
                                 </div>
                             </li>
                         ))}
                     </ul>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No vendors added yet.</p>
+                )}
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingVendor ? 'Edit Vendor' : 'Add New Vendor'}>

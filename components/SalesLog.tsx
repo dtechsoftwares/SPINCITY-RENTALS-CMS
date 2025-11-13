@@ -151,79 +151,38 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
                 </button>
             </div>
 
-            <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                 {/* Table for medium and up screens */}
-                <div className="overflow-x-auto hidden md:block">
-                    <table className="w-full text-left min-w-[720px]">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                            <tr>
-                                <th className="p-4 font-semibold">Sale ID</th>
-                                <th className="p-4 font-semibold">Sale Date</th>
-                                <th className="p-4 font-semibold">Item Sold</th>
-                                <th className="p-4 font-semibold">Buyer Name</th>
-                                <th className="p-4 font-semibold">Bill of Sale</th>
-                                <th className="p-4 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sales.map(sale => {
-                                const item = inventoryMap.get(sale.itemId);
-                                return (
-                                    <tr key={sale.id} className="border-b border-gray-200">
-                                        <td className="p-4 font-medium">{sale.saleId}</td>
-                                        <td className="p-4 text-gray-500">{sale.saleDate}</td>
-                                        <td className="p-4 text-gray-500">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</td>
-                                        <td className="p-4 text-gray-500">{sale.buyerName}</td>
-                                        <td className="p-4">
-                                            <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
-                                                View
-                                            </a>
-                                        </td>
-                                        <td className="p-4 text-gray-500">
-                                            <div className="flex space-x-4">
-                                                <button onClick={() => handleOpenModal(sale)} className="hover:text-brand-green">Edit</button>
-                                                {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Cards for small screens */}
-                <div className="md:hidden">
+            <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+                {sales.length > 0 ? (
                     <ul className="divide-y divide-gray-200">
                         {sales.map(sale => {
                             const item = inventoryMap.get(sale.itemId);
                             return (
-                                <li key={sale.id} className="p-4 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-lg">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</p>
-                                            <p className="text-sm text-gray-500">Sale ID: {sale.saleId}</p>
+                                <li key={sale.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                    <div className="flex-grow">
+                                        <p className="font-bold text-lg">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</p>
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                            <span>Sale ID: {sale.saleId}</span>
+                                            <span>Buyer: {sale.buyerName}</span>
+                                            <span>Date: {sale.saleDate}</span>
                                         </div>
-                                        <p className="text-lg font-semibold">${sale.salePrice.toFixed(2)}</p>
                                     </div>
-                                    <div>
-                                        <p className="font-semibold">{sale.buyerName}</p>
-                                        <p className="text-sm text-gray-500">Date: {sale.saleDate}</p>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand-green hover:underline">
-                                            View Bill of Sale
+                                    <div className="flex items-center gap-4 self-end sm:self-center">
+                                        <p className="font-semibold text-brand-text text-lg">${sale.salePrice.toFixed(2)}</p>
+                                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
+                                            View Bill
                                         </a>
-                                        <div className="flex space-x-4 text-sm">
-                                            <button onClick={() => handleOpenModal(sale)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                        <div className="flex space-x-4 text-gray-500">
+                                            <button onClick={() => handleOpenModal(sale)} className="hover:text-brand-green">Edit</button>
+                                            {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                         </div>
                                     </div>
                                 </li>
-                            );
+                            )
                         })}
                     </ul>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No sales recorded yet.</p>
+                )}
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingSale ? 'Edit Sale Record' : 'Record New Sale'}>

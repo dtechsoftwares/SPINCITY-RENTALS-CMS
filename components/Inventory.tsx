@@ -150,67 +150,33 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, 
                 </button>
             </div>
 
-            <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                {/* Table for medium and up screens */}
-                <div className="overflow-x-auto hidden md:block">
-                    <table className="w-full text-left min-w-[720px]">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                            <tr>
-                                <th className="p-4 font-semibold">Item Type</th>
-                                <th className="p-4 font-semibold">Make/Model</th>
-                                <th className="p-4 font-semibold">Serial #</th>
-                                <th className="p-4 font-semibold">Status</th>
-                                <th className="p-4 font-semibold">Condition</th>
-                                <th className="p-4 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {inventory.map(item => (
-                                <tr key={item.id} className="border-b border-gray-200 last:border-b-0">
-                                    <td className="p-4 font-medium">{item.itemType}</td>
-                                    <td className="p-4 text-gray-500">{item.makeModel}</td>
-                                    <td className="p-4 text-gray-500">{item.serialNumber}</td>
-                                    <td className="p-4">
-                                        <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(item.status)}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-gray-500">{item.condition}</td>
-                                    <td className="p-4 text-gray-500">
-                                        <div className="flex space-x-4">
-                                            <button onClick={() => handleOpenModal(item)} className="hover:text-brand-green">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(item.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Cards for small screens */}
-                <div className="md:hidden">
+            <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+                {inventory.length > 0 ? (
                     <ul className="divide-y divide-gray-200">
                         {inventory.map(item => (
-                            <li key={item.id} className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg">{item.itemType} - {item.makeModel}</p>
-                                        <p className="text-sm text-gray-500">SN: {item.serialNumber}</p>
+                            <li key={item.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
+                                    <p className="font-bold text-lg">{item.itemType} - {item.makeModel}</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                        <span>SN: {item.serialNumber}</span>
+                                        <span>Condition: {item.condition}</span>
                                     </div>
-                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(item.status)}`}>{item.status}</span>
                                 </div>
-                                <div className="flex justify-between items-end">
-                                    <p className="text-sm text-gray-500">{item.condition}</p>
-                                    <div className="flex space-x-4 text-sm">
-                                        <button onClick={() => handleOpenModal(item)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(item.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                <div className="flex items-center gap-4 self-end sm:self-center">
+                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(item.status)}`}>
+                                        {item.status}
+                                    </span>
+                                    <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => handleOpenModal(item)} className="hover:text-brand-green">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(item.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
                                 </div>
                             </li>
                         ))}
                     </ul>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No inventory items yet. Add one to get started!</p>
+                )}
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingItem ? 'Edit Inventory Item' : 'Add Inventory Item'}>

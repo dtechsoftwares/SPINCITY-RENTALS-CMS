@@ -153,75 +153,29 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
         <p className="text-gray-500 text-sm sm:text-right">New users can be added via the registration page.<br/>You can manage user roles here.</p>
       </div>
 
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200">
-        {/* Table for medium and up screens */}
-        <div className="overflow-x-auto hidden md:block">
-            <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                <tr>
-                <th className="p-4 font-semibold">Name</th>
-                <th className="p-4 font-semibold">Email</th>
-                <th className="p-4 font-semibold">Role</th>
-                <th className="p-4 font-semibold">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {users.map(user => (
-                <tr key={user.id} className="border-b border-gray-200">
-                    <td className="p-4">
-                    <div className="flex items-center space-x-3">
-                        <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
-                        <span className="font-medium">{user.name}{user.id === currentUser.id && " (You)"}</span>
-                    </div>
-                    </td>
-                    <td className="p-4 text-gray-500">{user.email}</td>
-                    <td className="p-4">
-                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
-                        {user.role}
-                    </span>
-                    </td>
-                    <td className="p-4 text-gray-500">
-                    <div className="flex space-x-4">
-                        <button onClick={() => openModalForView(user)} className="hover:text-brand-green">View</button>
-                        {isAdmin && (
-                            <>
-                                <button onClick={() => openModalForEdit(user)} className="hover:text-brand-green">Edit</button>
-                                {user.id !== currentUser.id && (
-                                <button onClick={() => handleDeleteRequest(user.id)} className="text-red-500 hover:text-red-400">Delete</button>
-                                )}
-                            </>
-                        )}
-                    </div>
-                    </td>
-                </tr>
-                ))}
-            </tbody>
-            </table>
-        </div>
-
-        {/* Cards for small screens */}
-        <div className="md:hidden">
+      <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+        {users.length > 0 ? (
             <ul className="divide-y divide-gray-200">
                 {users.map(user => (
-                    <li key={user.id} className="p-4 space-y-3">
-                        <div className="flex items-center space-x-4">
+                    <li key={user.id} className="py-4 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="flex items-center space-x-4 flex-grow self-start sm:self-center">
                             <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover" />
                             <div className="flex-1">
                                 <p className="font-bold text-lg">{user.name}{user.id === currentUser.id && " (You)"}</p>
                                 <p className="text-sm text-gray-500 break-all">{user.email}</p>
                             </div>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4 self-end sm:self-center w-full sm:w-auto">
                             <span className={`px-3 py-1 text-sm rounded-full font-semibold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
                                 {user.role}
                             </span>
-                            <div className="flex space-x-4 text-sm">
-                                <button onClick={() => openModalForView(user)} className="font-semibold text-brand-green hover:text-brand-green-dark">View</button>
+                            <div className="flex space-x-4 text-gray-500 ml-auto">
+                                <button onClick={() => openModalForView(user)} className="hover:text-brand-green">View</button>
                                 {isAdmin && (
                                     <>
-                                        <button onClick={() => openModalForEdit(user)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
+                                        <button onClick={() => openModalForEdit(user)} className="hover:text-brand-green">Edit</button>
                                         {user.id !== currentUser.id && (
-                                            <button onClick={() => handleDeleteRequest(user.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>
+                                        <button onClick={() => handleDeleteRequest(user.id)} className="text-red-500 hover:text-red-400">Delete</button>
                                         )}
                                     </>
                                 )}
@@ -230,7 +184,9 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
                     </li>
                 ))}
             </ul>
-        </div>
+        ) : (
+            <p className="text-center text-gray-500 py-8">No users found.</p>
+        )}
       </div>
 
        <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingUser ? 'Edit User' : 'Create New User'}>

@@ -207,72 +207,35 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
             </button>
         </div>
 
-        <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-            {/* Table for medium and up screens */}
-            <div className="overflow-x-auto hidden md:block">
-                <table className="w-full text-left min-w-[720px]">
-                    <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                        <tr>
-                            <th className="p-4 font-semibold">Renter</th>
-                            <th className="p-4 font-semibold">Plan</th>
-                            <th className="p-4 font-semibold">Monthly Rate</th>
-                            <th className="p-4 font-semibold">Status</th>
-                            <th className="p-4 font-semibold">Start Date</th>
-                            <th className="p-4 font-semibold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rentals.map(rental => {
-                            const contact = contactMap.get(rental.contactId);
-                            return (
-                                <tr key={rental.id} className="border-b border-gray-200">
-                                    <td className="p-4 font-medium">{contact ? contact.fullName : `Contact ID: ${rental.contactId}`}</td>
-                                    <td className="p-4 text-gray-500">{rental.plan}</td>
-                                    <td className="p-4 text-gray-500">${rental.monthlyRate.toFixed(2)}</td>
-                                    <td className="p-4"><span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span></td>
-                                    <td className="p-4 text-gray-500">{rental.startDate}</td>
-                                    <td className="p-4 text-gray-500">
-                                        <div className="flex space-x-4">
-                                            <button onClick={() => handleOpenModal(rental)} className="hover:text-brand-green">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Cards for small screens */}
-            <div className="md:hidden">
+        <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+            {rentals.length > 0 ? (
                 <ul className="divide-y divide-gray-200">
                     {rentals.map(rental => {
                         const contact = contactMap.get(rental.contactId);
                         return (
-                            <li key={rental.id} className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg">{contact ? contact.fullName : `Contact ID: ${rental.contactId}`}</p>
-                                        <p className="text-sm text-gray-500">{rental.plan}</p>
+                            <li key={rental.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
+                                    <p className="font-bold text-lg">{contact ? contact.fullName : `Contact ID: ${rental.contactId}`}</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                        <span>Plan: {rental.plan}</span>
+                                        <span>Start: {rental.startDate}</span>
                                     </div>
-                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span>
                                 </div>
-                                <div className="flex justify-between items-end">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Start Date: {rental.startDate}</p>
-                                        <p className="font-semibold text-brand-text text-lg">${rental.monthlyRate.toFixed(2)}<span className="text-sm font-normal text-gray-500">/mo</span></p>
-                                    </div>
-                                    <div className="flex space-x-4 text-sm">
-                                        <button onClick={() => handleOpenModal(rental)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                <div className="flex items-center gap-4 self-end sm:self-center">
+                                     <p className="font-semibold text-brand-text text-lg">${rental.monthlyRate.toFixed(2)}<span className="text-sm font-normal text-gray-500">/mo</span></p>
+                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span>
+                                    <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => handleOpenModal(rental)} className="hover:text-brand-green">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
                                 </div>
                             </li>
                         );
                     })}
                 </ul>
-            </div>
+            ) : (
+                 <p className="text-center text-gray-500 py-8">No rentals yet. Add one to get started!</p>
+            )}
         </div>
 
         <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRental ? 'Edit Rental Agreement' : 'Create Rental Agreement'}>

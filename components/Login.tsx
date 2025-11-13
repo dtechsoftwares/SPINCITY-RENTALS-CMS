@@ -5,6 +5,7 @@ import * as db from '../utils/storage';
 import { auth, db as firestoreDb } from '../utils/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, getDocs, query, limit } from 'firebase/firestore';
+import { defaultLogoBase64 } from '../assets/default-logo';
 
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
@@ -30,14 +31,6 @@ const Input = ({ label, type = 'text', name, value, onChange, required=false, pl
     <div>
         <label className="block text-sm font-medium text-gray-600 mb-1">{label}{required && <span className="text-red-500">*</span>}</label>
         <input type={type} name={name} value={value} onChange={onChange} required={required} placeholder={placeholder} className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text" />
-    </div>
-);
-
-const DefaultLogo = ({ className = "w-32 h-32 mx-auto object-contain" }: { className?: string }) => (
-    <div className="text-brand-dark">
-        <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3 1m-3-1l-3-1m3 1v5.25m-3-5.25v5.25m-3-5.25l3 1m-3-1l-3 1m0 0v5.25m0 0l3 1m-3-1l-3-1" />
-        </svg>
     </div>
 );
 
@@ -155,7 +148,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
       <div className="min-h-screen bg-brand-green flex flex-col justify-center items-center p-4">
         <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
-             {splashLogo ? <img src={splashLogo} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" /> : <DefaultLogo />}
+             <img src={splashLogo || defaultLogoBase64} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" />
              <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
              <p className="text-gray-500">Customer Management Service</p>
           </div>
@@ -195,7 +188,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
     <div className="min-h-screen bg-brand-green flex flex-col justify-center items-center p-4">
       <div className="max-w-md w-full mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 animate-fade-in-down">
           <div className="mb-6 text-center">
-              {splashLogo ? <img src={splashLogo} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" /> : <DefaultLogo />}
+              <img src={splashLogo || defaultLogoBase64} alt="Spin City Rentals Logo" className="w-32 h-32 mx-auto object-contain" />
               <h1 className="text-2xl font-bold text-brand-text mt-4">SpinCity Rentals</h1>
               <p className="text-gray-500">Customer Management Service</p>
           </div>

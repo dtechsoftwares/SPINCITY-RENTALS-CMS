@@ -157,7 +157,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
         </button>
     );
 
-    const TableView = ({ data, columns, onDelete }: { data: Submission[], columns: any[], onDelete: (item: Submission) => void }) => {
+    const SubmissionList = ({ data, onDelete }: { data: Submission[], onDelete: (item: Submission) => void }) => {
         const [filter, setFilter] = useState('');
         const filteredData = useMemo(() => {
             if (!filter) return data;
@@ -172,96 +172,38 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
                 <input 
                     type="text"
-                    placeholder="Search this table..."
+                    placeholder="Search submissions..."
                     value={filter}
                     onChange={e => setFilter(e.target.value)}
                     className="w-full md:w-1/3 mb-4 bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text"
                 />
-                 <div className="overflow-x-auto hidden md:block">
-                    <table className="w-full text-left min-w-[720px]">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                            <tr>
-                                {columns.map(col => <th key={col.key} className="p-4 font-semibold">{col.header}</th>)}
-                                <th className="p-4 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredData.map(item => (
-                                <tr key={item.id} className="border-b border-gray-200">
-                                    {columns.map(col => <td key={col.key} className="p-4 text-gray-600">{col.render(item)}</td>)}
-                                    <td className="p-4">
-                                        <div className="flex space-x-4">
-                                            <button onClick={() => setSelectedSubmission(item)} className="text-brand-green hover:underline font-semibold">View</button>
-                                            <button onClick={() => onDelete(item)} className="text-red-500 hover:text-red-400 font-semibold">Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Cards for small screens */}
-                <div className="md:hidden">
-                    <ul className="divide-y divide-gray-200">
+                {filteredData.length > 0 ? (
+                     <ul className="divide-y divide-gray-200">
                         {filteredData.map(item => (
-                            <li key={item.id} className="p-4 space-y-3">
-                                <div className="space-y-2">
-                                    {columns.map(col => (
-                                        <div key={col.key} className="flex justify-between items-center text-sm">
-                                            <p className="font-semibold text-gray-500">{col.header}</p>
-                                            {col.key === 'status' ? (
-                                                <span className={`px-2 py-1 text-xs rounded-full font-semibold ${item.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{item.status || 'new'}</span>
-                                            ) : (
-                                                <p className="text-gray-800 text-right break-all">{col.render(item)}</p>
-                                            )}
-                                        </div>
-                                    ))}
+                             <li key={item.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
+                                    <p className="font-bold text-lg capitalize">{item.type}: {(item as any).name || (item as any).renter_name || (item as any).customerName}</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                        <span>{(item as any).email || (item as any).Renter_Verified_Email}</span>
+                                        <span>Date: {new Date((item as any).timestamp || (item as any).submissionDate).toLocaleDateString()}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-end space-x-4 text-sm pt-3 mt-3 border-t">
-                                    <button onClick={() => setSelectedSubmission(item)} className="font-semibold text-brand-green hover:underline">View Details</button>
-                                    <button onClick={() => onDelete(item)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>
+                                <div className="flex items-center gap-4 self-end sm:self-center">
+                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${item.status === 'completed' ? 'bg-green-100 text-green-700' : item.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>{item.status || 'new'}</span>
+                                    <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => setSelectedSubmission(item)} className="hover:text-brand-green">View</button>
+                                        <button onClick={() => onDelete(item)} className="text-red-500 hover:text-red-400">Delete</button>
+                                    </div>
                                 </div>
                             </li>
                         ))}
                     </ul>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No submissions found.</p>
+                )}
             </div>
         )
     };
-    
-    const contactColumns = [
-        { key: 'name', header: 'Name', render: (item: SiteContact) => item.name },
-        { key: 'email', header: 'Email', render: (item: SiteContact) => item.email },
-        { key: 'phone', header: 'Phone', render: (item: SiteContact) => item.phone },
-        { key: 'plan', header: 'Plan', render: (item: SiteContact) => item.plan },
-        { key: 'status', header: 'Status', render: (item: SiteContact) => item.status || 'new' },
-    ];
-
-    const rentalColumns = [
-        { key: 'renter_name', header: 'Name', render: (item: SiteRental) => item.renter_name },
-        { key: 'email', header: 'Email', render: (item: SiteRental) => item.Renter_Verified_Email },
-        { key: 'plan', header: 'Plan', render: (item: SiteRental) => item.selected_plan.split(' - ')[0] },
-        { key: 'date', header: 'Date', render: (item: SiteRental) => new Date(item.timestamp).toLocaleDateString() },
-        { key: 'status', header: 'Status', render: (item: SiteRental) => item.status || 'new' },
-    ];
-    
-    const repairColumns = [
-        { key: 'customerName', header: 'Name', render: (item: SiteRepair) => item.customerName },
-        { key: 'email', header: 'Email', render: (item: SiteRepair) => item.email },
-        { key: 'appliance', header: 'Appliance', render: (item: SiteRepair) => item.applianceType },
-        { key: 'urgency', header: 'Urgency', render: (item: SiteRepair) => item.urgency },
-        { key: 'status', header: 'Status', render: (item: SiteRepair) => item.status || 'new' },
-    ];
-    
-    const overviewColumns = [
-        { key: 'type', header: 'Type', render: (item: Submission) => item.type },
-        { key: 'name', header: 'Name', render: (item: any) => item.name || item.renter_name || item.customerName },
-        { key: 'email', header: 'Email', render: (item: any) => item.email || item.Renter_Verified_Email },
-        { key: 'date', header: 'Date', render: (item: any) => new Date(item.timestamp || item.submissionDate).toLocaleDateString() },
-        { key: 'status', header: 'Status', render: (item: Submission) => item.status || 'new' },
-    ];
-
 
     return (
         <div className="p-4 sm:p-8 text-brand-text">
@@ -282,10 +224,10 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                 <TabButton id="repairs" label="Repair Requests" />
             </div>
 
-            {activeTab === 'overview' && <TableView data={allSubmissions} columns={overviewColumns} onDelete={handleDeleteRequest} />}
-            {activeTab === 'contacts' && <TableView data={siteContacts} columns={contactColumns} onDelete={handleDeleteRequest} />}
-            {activeTab === 'rentals' && <TableView data={siteRentals} columns={rentalColumns} onDelete={handleDeleteRequest} />}
-            {activeTab === 'repairs' && <TableView data={siteRepairs} columns={repairColumns} onDelete={handleDeleteRequest} />}
+            {activeTab === 'overview' && <SubmissionList data={allSubmissions} onDelete={handleDeleteRequest} />}
+            {activeTab === 'contacts' && <SubmissionList data={siteContacts} onDelete={handleDeleteRequest} />}
+            {activeTab === 'rentals' && <SubmissionList data={siteRentals} onDelete={handleDeleteRequest} />}
+            {activeTab === 'repairs' && <SubmissionList data={siteRepairs} onDelete={handleDeleteRequest} />}
 
 
             <Modal isOpen={!!selectedSubmission} onClose={() => setSelectedSubmission(null)} title="Submission Details">

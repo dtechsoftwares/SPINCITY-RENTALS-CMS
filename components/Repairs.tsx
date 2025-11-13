@@ -302,70 +302,32 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
                 </button>
             </div>
 
-            <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                {/* Table for medium and up screens */}
-                <div className="overflow-x-auto hidden md:block">
-                    <table className="w-full text-left min-w-[720px]">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
-                            <tr>
-                                <th className="p-4 font-semibold">Customer</th>
-                                <th className="p-4 font-semibold">Service Address</th>
-                                <th className="p-4 font-semibold">Appliance</th>
-                                <th className="p-4 font-semibold">Status</th>
-                                <th className="p-4 font-semibold">Reported Date</th>
-                                <th className="p-4 font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {repairs.map(repair => (
-                                <tr key={repair.id} className="border-b border-gray-200">
-                                    <td className="p-4 font-medium">{contactMap.get(repair.contactId)?.fullName || `Contact ID: ${repair.contactId}`}</td>
-                                    <td className="p-4 text-gray-500">{repair.serviceAddress}</td>
-                                    <td className="p-4 text-gray-500 flex items-center space-x-2">
-                                        <span>{repair.appliance}</span>
-                                        {repair.imageUrls && repair.imageUrls.length > 0 && <PaperclipIcon className="w-4 h-4 text-gray-400" />}
-                                    </td>
-                                    <td className="p-4"><span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(repair.status)}`}>{repair.status}</span></td>
-                                    <td className="p-4 text-gray-500">{repair.reportedDate}</td>
-                                    <td className="p-4">
-                                        <div className="flex space-x-4 text-gray-500">
-                                            <button onClick={() => setViewingRepair(repair)} className="hover:text-brand-green">View</button>
-                                            <button onClick={() => handleOpenModal(repair)} className="hover:text-brand-green">Edit</button>
-                                            {isAdmin && <button onClick={() => handleDeleteRequest(repair.id)} className="text-red-500 hover:text-red-400">Delete</button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                 {/* Cards for small screens */}
-                <div className="md:hidden">
+            <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-200">
+                {repairs.length > 0 ? (
                     <ul className="divide-y divide-gray-200">
                         {repairs.map(repair => (
-                             <li key={repair.id} className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-lg">{contactMap.get(repair.contactId)?.fullName || `Contact ID: ${repair.contactId}`}</p>
-                                        <p className="text-sm text-gray-500">{repair.serviceAddress}</p>
+                             <li key={repair.id} className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
+                                    <p className="font-bold text-lg">{contactMap.get(repair.contactId)?.fullName || `Contact ID: ${repair.contactId}`}</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                        <span>{repair.appliance}</span>
+                                        <span>Reported: {repair.reportedDate}</span>
                                     </div>
-                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(repair.status)}`}>{repair.status}</span>
                                 </div>
-                                <div className="flex justify-between items-end">
-                                    <div>
-                                        <p className="text-sm text-gray-500">{repair.appliance}</p>
-                                        <p className="text-sm text-gray-500">Reported: {repair.reportedDate}</p>
-                                    </div>
-                                    <div className="flex space-x-4 text-sm">
-                                        <button onClick={() => setViewingRepair(repair)} className="font-semibold text-brand-green hover:text-brand-green-dark">View</button>
-                                        <button onClick={() => handleOpenModal(repair)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
-                                        {isAdmin && <button onClick={() => handleDeleteRequest(repair.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                <div className="flex items-center gap-4 self-end sm:self-center">
+                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(repair.status)}`}>{repair.status}</span>
+                                     <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => setViewingRepair(repair)} className="hover:text-brand-green">View</button>
+                                        <button onClick={() => handleOpenModal(repair)} className="hover:text-brand-green">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(repair.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
                                 </div>
                             </li>
                         ))}
                     </ul>
-                </div>
+                ) : (
+                    <p className="text-center text-gray-500 py-8">No repair requests yet. Add one to get started!</p>
+                )}
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRepair ? 'Edit Repair Request' : 'Create Repair Request'}>

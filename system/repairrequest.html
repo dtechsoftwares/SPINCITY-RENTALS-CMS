@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repair Request - Spin City Rentals</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <style>
+        /* Your existing CSS styles remain exactly the same */
+        /* ========================================================== */
+        /* == Color Variables == */
+        /* ========================================================== */
+        :root {
+            --primary: #718E0E;      /* Christi - rich green */
+            --secondary: #CAF80C;    /* Electric Lime - for accents */
+            --dark: #1A1A1A;         /* Softer black */
+            --light: #F8F9FA;        /* Clean white */
+            --gray: #7C7C7C;         /* Boulder - secondary text */
+            --accent: #4A6B0D;       /* Darker green for hover states */
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            overflow-x: hidden;
+            padding-top: 100px;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* ========================================================== */
+        /* == Header & Navigation == */
+        /* ========================================================== */
+        header {
+            background-color: var(--light);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        
+        .logo-img {
+            height: 50px;
+            margin-right: 15px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .logo-text .business-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .logo-text .tagline {
+            font-size: 0.8rem;
+            color: var(--gray);
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            align-items: center;
+        }
+        
+        .nav-links li {
+            margin-left: 30px;
+        }
+        
+        .nav-links a:not(.btn) {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .nav-links a:not(.btn):hover {
+            color: var(--primary);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: var(--primary);
+            color: var(--light);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        .header-btn {
+            color: var(--light) !important;
+            padding: 12px 24px;
+            font-size: 1rem;
+            margin-left: 10px;
+            background-color: var(--primary);
+        }
+        
+        .mobile-menu {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        
+        .menu-icon {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .menu-icon .bar {
+            width: 25px;
+            height: 3px;
+            background-color: var(--dark);
+            transition: var(--transition);
+        }
+        
+        /* ========================================================== */
+        /* == Hero Section == */
+        /* ========================================================== */
+        .repair-hero {
+            background: linear-gradient(135deg, rgba(113, 142, 14, 0.95) 0%, rgba(74, 107, 13, 0.95) 100%);
+            color: var(--light);
+            padding: 80px 0 60px 0;
+            text-align: center;
+            margin-top: -100px;
+        }
+        
+        .repair-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .repair-hero p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+        
+        /* ========================================================== */
+        /* == Process Steps == */
+        /* ========================================================== */
+        .repair-steps {
+            padding: 60px 0;
+            background: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .section-title h2 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .section-title p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+        
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .step-card {
+            background: var(--light);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            transition: var(--transition);
+        }
+        
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .step-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .step-card h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .step-card p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+        
+        /* ========================================================== */
+        /* == Form Section == */
+        /* ========================================================== */
+        .repair-form-container {
+            background: var(--light);
+            padding: 60px 0;
+        }
+        
+        .repair-form {
+            background: white;
+            padding: 50px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .form-section {
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .form-section-title {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-section-title i {
+            font-size: 1.2rem;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group.required label:after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(113, 142, 14, 0.1);
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* Urgency Badges */
+        .urgency-badges {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .urgency-option {
+            position: relative;
+        }
+        
+        .urgency-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .urgency-label {
+            display: block;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            background: white;
+        }
+        
+        .urgency-option input[type="radio"]:checked + .urgency-label {
+            border-color: var(--primary);
+            background-color: rgba(113, 142, 14, 0.1);
+            font-weight: 600;
+        }
+        
+        .urgency-high .urgency-label {
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .urgency-medium .urgency-label {
+            border-left: 4px solid #f39c12;
+        }
+        
+        .urgency-low .urgency-label {
+            border-left: 4px solid #27ae60;
+        }
+        
+        /* Photo Upload */
+        .photo-upload {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            transition: var(--transition);
+            background: #fafafa;
+        }
+        
+        .photo-upload:hover {
+            border-color: var(--primary);
+            background: rgba(113, 142, 14, 0.05);
+        }
+        
+        .photo-upload.dragover {
+            border-color: var(--primary);
+            background: rgba(113, 142, 14, 0.1);
+        }
+        
+        .photo-upload i {
+            font-size: 3rem;
+            color: var(--gray);
+            margin-bottom: 15px;
+        }
+        
+        .upload-btn {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 10px;
+            transition: var(--transition);
+            font-weight: 600;
+        }
+        
+        .upload-btn:hover {
+            background: var(--accent);
+        }
+        
+        #photo-upload {
+            display: none;
+        }
+        
+        #file-list {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+        
+        .file-item span {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .remove-file {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .image-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .image-preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .form-note {
+            background: rgba(113, 142, 14, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .form-note p {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: var(--dark);
+        }
+        
+        .form-note p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .form-note strong {
+            color: var(--primary);
+        }
+        
+        /* Submit Section */
+        .submit-section {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Success Message */
+        .confirmation-message {
+            display: none;
+            text-align: center;
+            padding: 60px 40px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .confirmation-message.active {
+            display: block;
+        }
+        
+        .confirmation-icon {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .confirmation-message h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        
+        .confirmation-message ul {
+            text-align: left;
+            margin: 20px auto;
+            max-width: 400px;
+            list-style-position: inside;
+        }
+        
+        .confirmation-message li {
+            margin-bottom: 10px;
+            color: var(--gray);
+        }
+        
+        /* ========================================================== */
+        /* == Footer == */
+        /* ========================================================== */
+        footer {
+            background-color: var(--dark);
+            color: var(--light);
+            padding: 70px 0 30px 0;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        
+        .footer-column p {
+            color: #ccc;
+            line-height: 1.8;
+        }
+        
+        .footer-column ul {
+            list-style: none;
+        }
+        
+        .footer-column ul li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-column a {
+            color: #ccc;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .footer-column a:hover {
+            color: var(--secondary);
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #333;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        
+        /* ========================================================== */
+        /* == Responsive Design == */
+        /* ========================================================== */
+        /* ========================================================== */
+        /* == Preloader Styles == */
+        /* ========================================================== */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--light);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(113, 142, 14, 0.2);
+            border-top: 8px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loader-text {
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 80px;
+                left: -100%;
+                width: 100%;
+                height: calc(100vh - 80px);
+                background: white;
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 30px;
+                transition: var(--transition);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+            
+            .nav-links.active {
+                left: 0;
+            }
+            
+            .nav-links li {
+                margin: 15px 0;
+                margin-left: 0;
+            }
+            
+            .mobile-menu {
+                display: flex;
+            }
+            
+            .mobile-menu.active .bar:nth-child(1) {
+                transform: rotate(45deg) translate(5px, 5px);
+            }
+            
+            .mobile-menu.active .bar:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .mobile-menu.active .bar:nth-child(3) {
+                transform: rotate(-45deg) translate(7px, -6px);
+            }
+            
+            .repair-form {
+                padding: 30px 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .urgency-badges {
+                grid-template-columns: 1fr;
+            }
+            
+            .repair-hero h1 {
+                font-size: 2rem;
+            }
+            
+            .repair-hero p {
+                font-size: 1rem;
+            }
+            
+            .btn, .header-btn {
+                width: 100%;
+                margin-bottom: 10px;
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+            
+            input, select, textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .logo-img img {
+                height: 40px;
+            }
+            
+            .business-name {
+                font-size: 1.3rem;
+            }
+            
+            .tagline {
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .repair-form {
+                padding: 20px 15px;
+            }
+            
+            .repair-hero h1 {
+                font-size: 1.8rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+        
+        /* Landscape mobile orientation */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .repair-form {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader"></div>
+        <div class="loader-text">Loading Repair Request</div>
+    </div>
+    
+    <!-- Header -->
+    <header id="header">
+        <div class="container">
+            <nav>
+                <a href="index.html" class="logo">
+                    <div class="logo-img">
+                        <img src="spin-city-rentals-logo.svg" alt="Spin City Rentals Logo" style="height: 50px; width: auto;">
+                    </div>
+                    <div class="logo-text">
+                        <div class="business-name">Spin City Rentals</div>
+                        <div class="tagline">RENT.RELAX.NEVER REPAIR</div>
+                    </div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#contact">Contact</a></li>
+                    <li><a href="index.html#gallery">Gallery</a></li>
+                    <li><a href="https://billing.stripe.com/p/login/00waEY9HX79n9jz5wbgA800" class="btn header-btn" target="_blank">Customer Portal</a></li>
+                    <li><a href="rental-agreement.html" class="btn header-btn" target="_blank">Rental Agreement</a></li>
+                </ul>
+                <div class="mobile-menu">
+                    <div class="menu-icon">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Repair Request Hero Section -->
+    <section class="repair-hero" style="margin-top: 100px;">
+        <div class="container">
+            <h1><i class="fas fa-tools"></i> Repair & Maintenance Request</h1>
+            <p>We're here to help! Report any issues with your rented appliances and we'll schedule service quickly.</p>
+        </div>
+    </section>
+
+    <!-- Process Steps -->
+    <section class="repair-steps">
+        <div class="container">
+            <div class="section-title">
+                <h2>Quick & Easy Repair Process</h2>
+                <p>How our repair service works</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-icon">📝</div>
+                    <h3>1. Submit Request</h3>
+                    <p>Fill out this simple form with your appliance details and issue description</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">⏱️</div>
+                    <h3>2. Fast Response</h3>
+                    <p>We'll contact you within 24 hours to schedule service</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">🔧</div>
+                    <h3>3. Professional Service</h3>
+                    <p>Our technician will repair your appliance at no extra cost</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">✅</div>
+                    <h3>4. All Set!</h3>
+                    <p>Your appliance is fixed and you're back to normal laundry routine</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Repair Request Form -->
+    <section class="repair-form-container">
+        <div class="container">
+            <div class="repair-form">
+                <form id="repair-form">
+                    <!-- Customer Information Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-user"></i> Your Information</h3>
+                        <div class="form-row">
+                            <div class="form-group required">
+                                <label for="customer-name">Full Name</label>
+                                <input type="text" id="customer-name" name="customer_name" required>
+                            </div>
+                            <div class="form-group required">
+                                <label for="customer-email">Email Address</label>
+                                <input type="email" id="customer-email" name="customer_email" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group required">
+                                <label for="customer-phone">Phone Number</label>
+                                <input type="tel" id="customer-phone" name="customer_phone" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="customer-account">Account Number (if known)</label>
+                                <input type="text" id="customer-account" name="customer_account">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Address Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-home"></i> Service Location</h3>
+                        <div class="form-group required">
+                            <label for="service-address">Service Address</label>
+                            <input type="text" id="service-address" name="service_address" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group required">
+                                <label for="service-city">City</label>
+                                <input type="text" id="service-city" name="service_city" value="Akron" required>
+                            </div>
+                            <div class="form-group required">
+                                <label for="service-zip">ZIP Code</label>
+                                <input type="text" id="service-zip" name="service_zip" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appliance Information Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-tools"></i> Appliance Details</h3>
+                        <div class="form-row">
+                            <div class="form-group required">
+                                <label for="appliance-type">Which appliance needs service?</label>
+                                <select id="appliance-type" name="appliance_type" required>
+                                    <option value="">Select appliance</option>
+                                    <option value="washer">Washer Only</option>
+                                    <option value="dryer">Dryer Only</option>
+                                    <option value="both">Both Washer & Dryer</option>
+                                    <option value="unknown">Not Sure</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="appliance-age">How long have you had the appliance?</label>
+                                <select id="appliance-age" name="appliance_age">
+                                    <option value="">Select time period</option>
+                                    <option value="less-1month">Less than 1 month</option>
+                                    <option value="1-6months">1-6 months</option>
+                                    <option value="6-12months">6-12 months</option>
+                                    <option value="1-2years">1-2 years</option>
+                                    <option value="2plus-years">More than 2 years</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issue Description Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-exclamation-triangle"></i> Issue Description</h3>
+                        <div class="form-group required">
+                            <label for="issue-type">What type of issue are you experiencing?</label>
+                            <select id="issue-type" name="issue_type" required>
+                                <option value="">Select issue type</option>
+                                <option value="not-starting">Appliance won't start</option>
+                                <option value="not-spinning">Washer not spinning</option>
+                                <option value="not-heating">Dryer not heating</option>
+                                <option value="leaking">Leaking water</option>
+                                <option value="noisy">Unusual noises</option>
+                                <option value="smelling">Strange smells</option>
+                                <option value="error-code">Error code displayed</option>
+                                <option value="other">Other issue</option>
+                            </select>
+                        </div>
+                        <div class="form-group required">
+                            <label for="issue-description">Please describe the issue in detail</label>
+                            <textarea id="issue-description" name="issue_description" placeholder="Please provide as much detail as possible about what's happening, when it started, and any error messages you see..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="error-codes">Error Codes (if any)</label>
+                            <input type="text" id="error-codes" name="error_codes" placeholder="e.g., E2, F5, LF, etc.">
+                        </div>
+                    </div>
+
+                    <!-- Urgency & Availability Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-clock"></i> Service Preferences</h3>
+                        <div class="form-group required">
+                            <label>How urgent is this repair?</label>
+                            <div class="urgency-badges">
+                                <div class="urgency-option urgency-high">
+                                    <input type="radio" id="urgency-high" name="urgency" value="high" required>
+                                    <label for="urgency-high" class="urgency-label">
+                                        <strong>High</strong><br>
+                                        <small>Appliance completely unusable</small>
+                                    </label>
+                                </div>
+                                <div class="urgency-option urgency-medium">
+                                    <input type="radio" id="urgency-medium" name="urgency" value="medium" required>
+                                    <label for="urgency-medium" class="urgency-label">
+                                        <strong>Medium</strong><br>
+                                        <small>Partially working with limitations</small>
+                                    </label>
+                                </div>
+                                <div class="urgency-option urgency-low">
+                                    <input type="radio" id="urgency-low" name="urgency" value="low" required>
+                                    <label for="urgency-low" class="urgency-label">
+                                        <strong>Low</strong><br>
+                                        <small>Minor issue, still functional</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="preferred-date">Preferred Service Date</label>
+                                <input type="date" id="preferred-date" name="preferred_date" min="">
+                            </div>
+                            <div class="form-group">
+                                <label for="preferred-time">Preferred Time of Day</label>
+                                <select id="preferred-time" name="preferred_time">
+                                    <option value="">Any time</option>
+                                    <option value="morning">Morning (8 AM - 12 PM)</option>
+                                    <option value="afternoon">Afternoon (12 PM - 4 PM)</option>
+                                    <option value="evening">Evening (4 PM - 7 PM)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Section -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-camera"></i> Photos (Optional but Helpful)</h3>
+                        <div class="photo-upload" id="photo-upload-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p><strong>Upload photos of the issue, error codes, or any damage</strong></p>
+                            <p style="font-size: 0.9rem; margin-top: 10px; color: var(--gray);">Drag and drop images here or click to select</p>
+                            <input type="file" id="photo-upload" name="photos" multiple accept="image/*">
+                            <label for="photo-upload" class="upload-btn">Choose Photos</label>
+                            <div id="image-preview" class="image-preview"></div>
+                        </div>
+                        <div class="form-note">
+                            <p><strong>Tip:</strong> Photos help our technicians diagnose issues faster!</p>
+                            <p>Take pictures of: error codes, leaks, unusual behavior, or any damage</p>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="form-section">
+                        <h3 class="form-section-title"><i class="fas fa-info-circle"></i> Additional Information</h3>
+                        <div class="form-group">
+                            <label for="additional-info">Anything else we should know?</label>
+                            <textarea id="additional-info" name="additional_info" placeholder="Any other details about the issue, recent changes, or special access instructions..."></textarea>
+                        </div>
+                            <div class="form-group">
+                                <label for="special-instructions">Special Access Instructions</label>
+                                <textarea id="special-instructions" name="special_instructions" placeholder="Gate codes, door codes, pet information, or any other access details..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="submit-section">
+                        <button type="submit" class="btn btn-large" id="submit-btn">
+                            <i class="fas fa-paper-plane"></i> Submit Repair Request
+                        </button>
+                        <p style="margin-top: 15px; font-size: 0.9rem; color: var(--gray);">
+                            We'll contact you within 24 hours to schedule service
+                        </p>
+                    </div>
+                </form>
+
+                <!-- Confirmation Message -->
+                <div class="confirmation-message" id="confirmation-message">
+                    <div class="confirmation-icon">✅</div>
+                    <h2>Repair Request Submitted!</h2>
+                    <p>Thank you for submitting your repair request. We've received your information and will contact you within 24 hours to schedule service.</p>
+                    <p style="margin-top: 20px;"><strong>What happens next:</strong></p>
+                    <ul>
+                        <li>We'll call you to confirm details and schedule service</li>
+                        <li>Our technician will arrive at the scheduled time</li>
+                        <li>All repairs are covered at no extra cost to you</li>
+                    </ul>
+                    <div style="margin-top: 30px;">
+                        <a href="index.html" class="btn">Return to Homepage</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Spin City Rentals</h3>
+                <p>Your Akron solution for in-home laundry, without the hassle or high cost of ownership.</p>
+            </div>
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#features">Why Choose Us</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#application">Apply Now</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>Customer Resources</h3>
+                <ul>
+                    <li><a href="https://billing.stripe.com/p/login/00waEY9HX79n9jz5wbgA800" target="_blank">Customer Portal</a></li>
+                    <li><a href="repairrequest.html">Repair Request</a></li>
+                    <li><a href="staff-portal.html">Staff Portal</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#testimonials">Testimonials</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>Legal</h3>
+                <ul>
+                    <li><a href="privacypolicy.html">Privacy Policy</a></li>
+                    <li><a href="termsofservice.html">Terms of Service</a></li>
+                    <li><a href="rental-agreement.html" target="_blank">Rental Agreement</a></li>
+                    <li><a href="#" id="footer-cookie-settings">Cookie Preferences</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2025 Spin City Rentals LLC. All rights reserved. | Serving Akron, OH and surrounding areas</p>
+            <p style="margin-top: 10px;">Powered By: <a href="https://cicadasitsolutions.com" target="_blank" style="color: var(--secondary); text-decoration: none; font-weight: 600;">Cicadas IT Solutions</a></p>
+        </div>
+    </div>
+</footer>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
+        // ==========================================================
+        // EMAILJS CONFIGURATION
+        // ==========================================================
+        const EMAILJS_CONFIG = {
+            PUBLIC_KEY: "fibgazxmIahyBPIJA",
+            SERVICE_ID: "service_6b35od8",
+            REPAIR_TEMPLATE_ID: "template_zossf4h"
+        };
+
+        // ==========================================================
+        // FIREBASE CONFIGURATION
+        // ==========================================================
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBjoBK7feqbPzON8BoOZNo4UQ3xbt5ZgkM",
+            authDomain: "spincityrentalsnew.firebaseapp.com",
+            projectId: "spincityrentalsnew",
+            storageBucket: "spincityrentalsnew.appspot.com",
+            messagingSenderId: "252954471415",
+            appId: "1:252954471415:web:01a747ebf09fb92d645cf2"
+        };
+
+        // Initialize Firebase
+        let firestore;
+        try {
+            const app = initializeApp(FIREBASE_CONFIG);
+            firestore = getFirestore(app);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.warn("Firebase initialization failed:", error);
+        }
+
+        // Preloader with 4-second timer
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('preloader').style.opacity = '0';
+                setTimeout(function() {
+                    document.getElementById('preloader').style.display = 'none';
+                }, 500);
+            }, 4000);
+        });
+
+        // Initialize EmailJS
+        window.addEventListener('DOMContentLoaded', function() {
+            emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('preferred-date').min = today;
+            
+            // Mobile menu toggle
+            const mobileMenu = document.querySelector('.mobile-menu');
+            const navLinks = document.querySelector('.nav-links');
+            
+            mobileMenu.addEventListener('click', function() {
+                this.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+            
+            // Close mobile menu when clicking a link
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    navLinks.classList.remove('active');
+                });
+            });
+        });
+
+        // Image Upload Handling
+        const photoUploadArea = document.getElementById('photo-upload-area');
+        const photoInput = document.getElementById('photo-upload');
+        const imagePreview = document.getElementById('image-preview');
+        let selectedImages = [];
+
+        // Click to upload
+        photoUploadArea.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'IMG' && e.target.tagName !== 'I') {
+                photoInput.click();
+            }
+        });
+
+        // Drag and drop
+        photoUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        photoUploadArea.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        photoUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            handleFiles(files);
+        });
+
+        photoInput.addEventListener('change', function() {
+            handleFiles(Array.from(this.files));
+        });
+
+        function handleFiles(files) {
+            files.forEach(file => {
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageData = {
+                        name: file.name,
+                        base64: e.target.result,
+                        type: file.type,
+                        size: file.size
+                    };
+                    selectedImages.push(imageData);
+                    updateImagePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateImagePreview() {
+            imagePreview.innerHTML = '';
+            selectedImages.forEach((imageData, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'image-preview-item';
+                previewItem.innerHTML = `
+                    <img src="${imageData.base64}" alt="${imageData.name}">
+                    <button type="button" class="remove-image" data-index="${index}" title="Remove image">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                imagePreview.appendChild(previewItem);
+            });
+        }
+        
+        imagePreview.addEventListener('click', function(e) {
+            const removeButton = e.target.closest('.remove-image');
+            if (removeButton) {
+                const indexToRemove = parseInt(removeButton.dataset.index, 10);
+                selectedImages.splice(indexToRemove, 1);
+                updateImagePreview();
+            }
+        });
+
+        // Save to Firebase Firestore
+        async function saveToFirebase(formObject) {
+            if (!firestore) {
+                console.warn("Firebase not available, skipping database save");
+                return null;
+            }
+
+            try {
+                const repairData = {
+                    submissionDate: new Date().toISOString(),
+                    customerName: formObject.customer_name || '',
+                    email: formObject.customer_email || '',
+                    phone: formObject.customer_phone || '',
+                    accountNumber: formObject.customer_account || '',
+                    serviceAddress: formObject.service_address || '',
+                    serviceCity: formObject.service_city || '',
+                    serviceZip: formObject.service_zip || '',
+                    applianceType: formObject.appliance_type || '',
+                    applianceAge: formObject.appliance_age || '',
+                    issueType: formObject.issue_type || '',
+                    issueDescription: formObject.issue_description || '',
+                    errorCodes: formObject.error_codes || '',
+                    urgency: formObject.urgency || '',
+                    preferredDate: formObject.preferred_date || '',
+                    preferredTime: formObject.preferred_time || '',
+                    additionalInfo: formObject.additional_info || '',
+                    specialInstructions: formObject.special_instructions || '',
+                    imageCount: selectedImages.length,
+                    imageNames: selectedImages.map(img => img.name),
+                    status: 'new',
+                };
+
+                const docRef = await addDoc(collection(firestore, 'repairRequests'), repairData);
+                console.log("Document written with ID: ", docRef.id);
+                return docRef.id;
+            } catch (error) {
+                console.error("Error adding document to Firebase: ", error);
+                throw error;
+            }
+        }
+
+        // Form Submission
+        document.getElementById('repair-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!this.checkValidity()) {
+                alert('Please fill in all required fields before submitting.');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+            
+            try {
+                const formData = new FormData(this);
+                const formObject = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    formObject[key] = value;
+                }
+                
+                await saveToFirebase(formObject);
+                await sendRepairEmails(formObject);
+                showSuccessMessage();
+                
+            } catch (error) {
+                console.error('Submission error:', error);
+                handleSubmissionError(error);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Function to send repair request emails with embedded images
+        async function sendRepairEmails(formObject) {
+            let htmlBody = `
+                <div style="font-family: sans-serif; line-height: 1.6;">
+                    <h2 style="color: #718E0E;">New Repair Request Received</h2>
+                    <p>A new repair request has been submitted through the website. Details are below:</p>
+                    <hr>
+                    <h3 style="color: #4A6B0D;">Customer Information</h3>
+                    <ul>
+                        <li><strong>Name:</strong> ${formObject.customer_name || 'N/A'}</li>
+                        <li><strong>Email:</strong> ${formObject.customer_email || 'N/A'}</li>
+                        <li><strong>Phone:</strong> ${formObject.customer_phone || 'N/A'}</li>
+                        <li><strong>Account #:</strong> ${formObject.customer_account || 'N/A'}</li>
+                    </ul>
+                    <h3 style="color: #4A6B0D;">Service Location</h3>
+                    <ul>
+                        <li><strong>Address:</strong> ${formObject.service_address || 'N/A'}</li>
+                        <li><strong>City:</strong> ${formObject.service_city || 'N/A'}</li>
+                        <li><strong>ZIP:</strong> ${formObject.service_zip || 'N/A'}</li>
+                    </ul>
+                    <h3 style="color: #4A6B0D;">Issue Details</h3>
+                    <ul>
+                        <li><strong>Appliance:</strong> ${formObject.appliance_type || 'N/A'}</li>
+                        <li><strong>Issue Type:</strong> ${formObject.issue_type || 'N/A'}</li>
+                        <li><strong>Urgency:</strong> ${formObject.urgency || 'N/A'}</li>
+                        <li><strong>Preferred Date:</strong> ${formObject.preferred_date || 'N/A'}</li>
+                        <li><strong>Preferred Time:</strong> ${formObject.preferred_time || 'N/A'}</li>
+                        <li><strong>Error Codes:</strong> ${formObject.error_codes || 'N/A'}</li>
+                    </ul>
+                    <h4 style="margin-top: 20px;">Issue Description:</h4>
+                    <p style="background: #f4f4f4; padding: 10px; border-radius: 5px;">${formObject.issue_description || 'N/A'}</p>
+                    <h4 style="margin-top: 20px;">Additional Info:</h4>
+                    <p style="background: #f4f4f4; padding: 10px; border-radius: 5px;">${formObject.additional_info || 'N/A'}</p>
+                    <h4 style="margin-top: 20px;">Special Instructions:</h4>
+                    <p style="background: #f4f4f4; padding: 10px; border-radius: 5px;">${formObject.special_instructions || 'N/A'}</p>
+            `;
+
+            if (selectedImages.length > 0) {
+                htmlBody += `
+                    <hr>
+                    <h3 style="color: #4A6B0D;">Submitted Images (${selectedImages.length})</h3>
+                    <div style="margin-top: 15px;">
+                `;
+                selectedImages.forEach(image => {
+                    htmlBody += `
+                        <div style="margin-bottom: 20px;">
+                            <p><strong>${image.name}</strong></p>
+                            <img src="${image.base64}" alt="${image.name}" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                    `;
+                });
+                htmlBody += `</div>`;
+            }
+            
+            htmlBody += `</div>`;
+
+            const templateParams = {
+                to_email: 'repairservices@spincityrentals.com',
+                from_name: formObject.customer_name || 'Repair Request Form',
+                reply_to: formObject.customer_email || 'noreply@spincityrentals.com',
+                subject: `Repair Request - ${formObject.appliance_type || 'Appliance'} Issue - ${formObject.customer_name || 'Customer'}`,
+                message: `A new repair request was submitted. Please view the HTML version of this email to see full details and any attached images.`,
+                message_html: htmlBody,
+                customer_name: formObject.customer_name || 'N/A',
+                customer_email: formObject.customer_email || 'N/A',
+            };
+            
+            await emailjs.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.REPAIR_TEMPLATE_ID, templateParams);
+        }
+
+        function showSuccessMessage() {
+            document.getElementById('repair-form').style.display = 'none';
+            document.getElementById('confirmation-message').classList.add('active');
+            document.getElementById('confirmation-message').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function handleSubmissionError(error) {
+            console.error('Full error details:', error);
+            alert('There was an error submitting your request. Please try again or call us.');
+        }
+
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 100) {
+                header.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+            } else {
+                header.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+    </script>
+</body>
+</html>
