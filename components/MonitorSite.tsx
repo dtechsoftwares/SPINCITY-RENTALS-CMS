@@ -138,7 +138,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                         const newStatus = status === 'completed' ? 'new' : 'completed';
                         onUpdateStatus(submission.id, submission.type, newStatus);
                         setSelectedSubmission(null);
-                    }} className={`bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors`}>
+                    }} className={`w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors`}>
                         Mark as {status === 'completed' ? 'New' : 'Completed'}
                     </button>
                  </div>

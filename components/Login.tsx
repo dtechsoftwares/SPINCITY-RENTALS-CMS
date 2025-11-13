@@ -248,9 +248,9 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification })
                       <PasswordToggleIcon show={showRegPassword} onToggle={() => setShowRegPassword(!showRegPassword)} />
                   </div>
               </div>
-              <div className="flex justify-end space-x-4 pt-2">
-                <button type="button" onClick={() => setIsRegisterModalOpen(false)} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark disabled:bg-gray-400">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 pt-2 gap-2">
+                <button type="button" onClick={() => setIsRegisterModalOpen(false)} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark disabled:bg-gray-400">
                     {isSubmitting ? 'Registering...' : 'Register'}
                 </button>
               </div>

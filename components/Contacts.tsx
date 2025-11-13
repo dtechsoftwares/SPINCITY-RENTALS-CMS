@@ -244,11 +244,11 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
           <div className="mt-6">
               <Textarea label="Additional Notes or Questions" name="notes" value={formData.notes ?? ''} onChange={handleInputChange} />
           </div>
-          <div className="flex justify-end space-x-4 mt-8">
-            <button onClick={closeFormModal} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 mt-8 gap-2">
+            <button onClick={closeFormModal} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                 Cancel
             </button>
-            <button onClick={handleSubmit} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark transition-colors">
+            <button onClick={handleSubmit} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">
                 {editingContact ? 'Update Client' : 'Save Client'}
             </button>
           </div>

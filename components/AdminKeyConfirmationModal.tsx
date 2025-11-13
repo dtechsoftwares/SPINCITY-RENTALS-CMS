@@ -75,11 +75,11 @@ const AdminKeyConfirmationModal: React.FC<AdminKeyConfirmationModalProps> = ({ i
                 </div>
                 <p className="text-sm text-gray-500">This action requires verification.</p>
             </div>
-            <div className="flex justify-end space-x-4 p-6 bg-gray-50 rounded-b-xl">
-                <button onClick={handleClose} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:space-x-4 p-6 bg-gray-50 rounded-b-xl">
+                <button onClick={handleClose} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                     Cancel
                 </button>
-                <button onClick={handleVerify} className="bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-yellow-600 transition-colors">
+                <button onClick={handleVerify} className="w-full sm:w-auto bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors">
                     Verify Key
                 </button>
             </div>
@@ -98,11 +98,11 @@ const AdminKeyConfirmationModal: React.FC<AdminKeyConfirmationModalProps> = ({ i
                     Are you absolutely sure you want to delete this item? This action is irreversible.
                 </p>
             </div>
-            <div className="flex justify-end space-x-4 p-6 bg-gray-50 rounded-b-xl">
-                <button onClick={handleClose} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:space-x-4 p-6 bg-gray-50 rounded-b-xl">
+                <button onClick={handleClose} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
                     Cancel
                 </button>
-                <button onClick={handleConfirm} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">
+                <button onClick={handleConfirm} className="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">
                     Confirm Delete
                 </button>
             </div>

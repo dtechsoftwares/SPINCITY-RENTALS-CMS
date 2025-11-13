@@ -243,9 +243,9 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, 
                     </Select>
                     <Textarea label="Notes" name="notes" value={formData.notes || ''} onChange={handleInputChange} />
                     
-                    <div className="flex justify-end space-x-4 pt-4 border-t mt-4">
-                        <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Cancel</button>
-                        <button type="button" onClick={handleSubmit} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark">{editingItem ? 'Save Changes' : 'Save Item'}</button>
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 pt-4 border-t mt-4 gap-2">
+                        <button type="button" onClick={handleCloseModal} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancel</button>
+                        <button type="button" onClick={handleSubmit} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark">{editingItem ? 'Save Changes' : 'Save Item'}</button>
                     </div>
                 </div>
             </Modal>

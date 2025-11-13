@@ -188,9 +188,9 @@ const Settings: React.FC<SettingsProps> = ({
                              <input type="file" accept="image/*" onChange={handleLogoChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-lime-50 file:text-lime-700 hover:file:bg-lime-100" />
                          </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
-                        <button onClick={handleResetLogo} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Reset to Default</button>
-                        <button onClick={handleSaveLogo} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark" disabled={!logoFile && logoPreview === currentLogo}>
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-4 mt-6">
+                        <button onClick={handleResetLogo} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Reset to Default</button>
+                        <button onClick={handleSaveLogo} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark" disabled={!logoFile && logoPreview === currentLogo}>
                             Save Logo
                         </button>
                     </div>
@@ -212,9 +212,9 @@ const Settings: React.FC<SettingsProps> = ({
                              <input type="file" accept="image/*" onChange={handleSplashLogoChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-lime-50 file:text-lime-700 hover:file:bg-lime-100" />
                          </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
-                        <button onClick={handleResetSplashLogo} className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Reset to Default</button>
-                        <button onClick={handleSaveSplashLogo} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark" disabled={!splashLogoFile && splashLogoPreview === currentSplashLogo}>
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-4 mt-6">
+                        <button onClick={handleResetSplashLogo} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Reset to Default</button>
+                        <button onClick={handleSaveSplashLogo} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark" disabled={!splashLogoFile && splashLogoPreview === currentSplashLogo}>
                             Save Splash Logo
                         </button>
                     </div>
@@ -228,7 +228,7 @@ const Settings: React.FC<SettingsProps> = ({
                         <InputField label="Twilio Phone Number" description="Your active Twilio phone number, including the country code." value={localSmsSettings.twilioPhoneNumber || ''} onChange={handleSmsSettingsChange} name="twilioPhoneNumber" placeholder="+1234567890" />
                     </div>
                     <div className="flex justify-end mt-6">
-                       <button onClick={handleSaveSmsSettings} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark">
+                       <button onClick={handleSaveSmsSettings} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark">
                            Save Twilio Settings
                        </button>
                    </div>
@@ -240,7 +240,7 @@ const Settings: React.FC<SettingsProps> = ({
                         <InputField label="Admin Registration Key" description="This key is required for the initial admin registration." type="password" value={localAdminKey} name="adminKey" onChange={(e) => setLocalAdminKey(e.target.value)} />
                     </div>
                     <div className="flex justify-end mt-6">
-                        <button onClick={handleSaveAdminKey} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark" disabled={localAdminKey === adminKey}>
+                        <button onClick={handleSaveAdminKey} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark" disabled={localAdminKey === adminKey}>
                             Save Key
                         </button>
                     </div>

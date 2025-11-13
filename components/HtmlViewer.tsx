@@ -132,17 +132,17 @@ const HtmlViewer: React.FC = () => {
                         Paste raw email HTML to render content and download embedded images.
                     </p>
                 </div>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                     <button
                         onClick={handleDownload}
                         disabled={images.length === 0 || isDownloading}
-                        className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                         {isDownloading ? 'Processing...' : `Download Image(s)`}
                     </button>
                     <button
                         onClick={handleClear}
-                        className="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors"
+                        className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
                     >
                         Clear
                     </button>

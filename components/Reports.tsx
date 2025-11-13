@@ -157,10 +157,10 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAct
             
             <div className="mt-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
                 <h3 className="text-lg font-bold mb-4">Actions</h3>
-                <div className="flex flex-wrap gap-4">
-                    <button onClick={handleExportCSV} className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Export to CSV</button>
-                    <button onClick={handlePrint} className="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Print / Save as PDF</button>
-                    <button onClick={handleEmailReport} className="bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">Email Report</button>
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+                    <button onClick={handleExportCSV} className="w-full sm:w-auto bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Export to CSV</button>
+                    <button onClick={handlePrint} className="w-full sm:w-auto bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Print / Save as PDF</button>
+                    <button onClick={handleEmailReport} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">Email Report</button>
                 </div>
             </div>
         </div>
