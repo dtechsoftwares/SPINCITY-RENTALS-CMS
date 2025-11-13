@@ -34,6 +34,7 @@ const KEYS = {
     APP_LOGO: 'spincity_appLogo',
     SPLASH_LOGO: 'spincity_splashLogo',
     SMS_SETTINGS: 'spincity_smsSettings',
+    AUTO_BACKUP_SETTING: 'spincity_autoBackupSetting',
 };
 
 // --- Data Loaders ---
@@ -54,8 +55,10 @@ export const loadAppLogo = () => get<string | null>(KEYS.APP_LOGO, null);
 export const saveAppLogo = (logo: string | null) => set(KEYS.APP_LOGO, logo);
 export const loadSplashLogo = () => get<string | null>(KEYS.SPLASH_LOGO, null);
 export const saveSplashLogo = (logo: string | null) => set(KEYS.SPLASH_LOGO, logo);
-export const loadSmsSettings = () => get<SmsSettings>(KEYS.SMS_SETTINGS, { apiKey: '', senderId: '', endpointUrl: '' });
+export const loadSmsSettings = () => get<SmsSettings>(KEYS.SMS_SETTINGS, { accountSid: '', authToken: '', twilioPhoneNumber: '' });
 export const saveSmsSettings = (settings: SmsSettings) => set(KEYS.SMS_SETTINGS, settings);
+export const loadAutoBackupSetting = () => get<boolean>(KEYS.AUTO_BACKUP_SETTING, false);
+export const saveAutoBackupSetting = (isEnabled: boolean) => set(KEYS.AUTO_BACKUP_SETTING, isEnabled);
 
 
 // --- CRUD Operations ---

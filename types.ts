@@ -142,9 +142,9 @@ export interface Repair {
 }
 
 export interface SmsSettings {
-    apiKey: string;
-    senderId: string;
-    endpointUrl: string;
+    accountSid: string;
+    authToken: string;
+    twilioPhoneNumber: string;
 }
 
 export interface Vendor {

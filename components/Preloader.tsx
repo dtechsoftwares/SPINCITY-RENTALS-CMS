@@ -17,6 +17,10 @@ const Preloader: React.FC<PreloaderProps> = ({ splashLogo }) => (
         ) : (
             <DefaultLogo className="w-80 h-auto text-white" />
         )}
+        <div className="text-center text-white mt-4">
+            <h1 className="text-3xl font-bold">SpinCity Rentals</h1>
+            <p className="text-lg">Customer Management Service</p>
+        </div>
     </div>
 );
 

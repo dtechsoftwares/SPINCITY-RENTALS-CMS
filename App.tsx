@@ -56,8 +56,9 @@ const App: React.FC = () => {
   
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [splashLogo, setSplashLogo] = useState<string | null>(null);
-  const [smsSettings, setSmsSettings] = useState<SmsSettings>({ apiKey: '', senderId: '', endpointUrl: '' });
+  const [smsSettings, setSmsSettings] = useState<SmsSettings>({ accountSid: '', authToken: '', twilioPhoneNumber: '' });
   const [adminKey, setAdminKey] = useState<string>('');
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   
   const [notification, setNotification] = useState('');
 
@@ -74,6 +75,7 @@ const App: React.FC = () => {
             setAppLogo(db.loadAppLogo());
             setSplashLogo(db.loadSplashLogo());
             setAdminKey(db.loadAdminKey());
+            setAutoBackupEnabled(db.loadAutoBackupSetting());
 
             if (appUser) {
                 setCurrentUser(appUser);
@@ -95,6 +97,32 @@ const App: React.FC = () => {
     
     loadAppData();
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+        if (autoBackupEnabled) {
+            // This creates and triggers a download of the backup file.
+            // Note: Modern browsers may block automatic downloads initiated during page unload for security reasons.
+            const jsonData = db.getBackupData();
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `spincity_autobackup_${date}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [autoBackupEnabled]);
   
   const showNotification = (message: string) => {
     setNotification(message);
@@ -299,6 +327,12 @@ const App: React.FC = () => {
       }
   });
 
+  const handleToggleAutoBackup = (enabled: boolean) => handleAction(() => {
+    db.saveAutoBackupSetting(enabled);
+    setAutoBackupEnabled(enabled);
+    showNotification(`Automatic backup on exit has been ${enabled ? 'enabled' : 'disabled'}.`);
+  });
+
   if (appLoading) {
     return <Preloader splashLogo={splashLogo} />;
   }
@@ -357,6 +391,8 @@ const App: React.FC = () => {
                     onUpdateSplashLogo={handleUpdateSplashLogo}
                     showNotification={showNotification}
                     onRestoreData={handleRestoreData}
+                    autoBackupEnabled={autoBackupEnabled}
+                    onToggleAutoBackup={handleToggleAutoBackup}
                 />;
       case AppView.Rentals:
         return <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} showNotification={showNotification} adminKey={adminKey} />;

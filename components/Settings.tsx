@@ -92,6 +92,8 @@ interface SettingsProps {
     onUpdateSplashLogo: (logo: string | null) => void;
     showNotification: (message: string) => void;
     onRestoreData: (jsonData: string) => void;
+    autoBackupEnabled: boolean;
+    onToggleAutoBackup: (enabled: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ 
@@ -104,7 +106,9 @@ const Settings: React.FC<SettingsProps> = ({
     currentSplashLogo,
     onUpdateSplashLogo,
     showNotification,
-    onRestoreData
+    onRestoreData,
+    autoBackupEnabled,
+    onToggleAutoBackup
 }) => {
     const [smsEnabled, setSmsEnabled] = useState(true);
     const [emailEnabled, setEmailEnabled] = useState(true);
@@ -240,6 +244,14 @@ const Settings: React.FC<SettingsProps> = ({
                                 <input type="file" ref={restoreInputRef} onChange={handleRestoreFileChange} accept=".json" className="hidden" />
                             </div>
                         </div>
+                        <div className="pt-4 border-t border-gray-200">
+                           <ToggleSwitch 
+                                label="Enable Automatic Backup on Exit" 
+                                description="Automatically saves a backup file to your device when you close the app. This may be blocked by your browser's security settings."
+                                enabled={autoBackupEnabled} 
+                                setEnabled={onToggleAutoBackup} 
+                            />
+                        </div>
                     </div>
                 </section>
 
@@ -292,15 +304,15 @@ const Settings: React.FC<SettingsProps> = ({
                 </section>
                 
                 <section>
-                    <h2 className="text-2xl font-bold border-b border-gray-200 pb-2 mb-6">SMS Gateway Configuration</h2>
+                    <h2 className="text-2xl font-bold border-b border-gray-200 pb-2 mb-6">Twilio SMS Gateway Configuration</h2>
                     <div className="space-y-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
-                        <InputField label="API Key" description="Your API Key from smsonlinegh.com" type="password" value={localSmsSettings.apiKey || ''} onChange={handleSmsSettingsChange} name="apiKey" />
-                        <InputField label="Sender ID" description="The name that appears as the sender (must be approved)." value={localSmsSettings.senderId || ''} onChange={handleSmsSettingsChange} name="senderId" />
-                        <InputField label="API Endpoint URL" description="The full URL for the SMS send endpoint." value={localSmsSettings.endpointUrl || ''} onChange={handleSmsSettingsChange} name="endpointUrl" />
+                        <InputField label="Twilio Account SID" description="Your Account SID from your Twilio dashboard." type="text" value={localSmsSettings.accountSid || ''} onChange={handleSmsSettingsChange} name="accountSid" />
+                        <InputField label="Twilio Auth Token" description="Your Auth Token from your Twilio dashboard." type="password" value={localSmsSettings.authToken || ''} onChange={handleSmsSettingsChange} name="authToken" />
+                        <InputField label="Twilio Phone Number" description="Your active Twilio phone number, including the country code." value={localSmsSettings.twilioPhoneNumber || ''} onChange={handleSmsSettingsChange} name="twilioPhoneNumber" placeholder="+1234567890" />
                     </div>
                     <div className="flex justify-end mt-6">
                        <button onClick={handleSaveSmsSettings} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark">
-                           Save SMS Settings
+                           Save Twilio Settings
                        </button>
                    </div>
                 </section>

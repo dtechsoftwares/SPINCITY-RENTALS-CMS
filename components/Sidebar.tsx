@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
             </svg>
           )}
         </div>
-        <h1 className="text-xl font-bold">SpinCity CMS</h1>
+        <h1 className="text-xl font-bold">SpinCity Rentals CMS</h1>
       </div>
       <nav className="flex-1 px-4 py-2">
         <ul>
