@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor } from './types';
+import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Users from './components/Users';
@@ -14,9 +14,14 @@ import Preloader from './components/Preloader';
 import Login from './components/Login';
 import Notifications from './components/Notifications';
 import Reports from './components/Reports';
+import MonitorSite from './components/MonitorSite';
+import HtmlViewer from './components/HtmlViewer';
 import * as db from './utils/storage';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
+
+// Make firebase globally available
+declare const firebase: any;
 
 interface HeaderProps {
     viewName: string;
@@ -62,6 +67,12 @@ const App: React.FC = () => {
   
   const [notification, setNotification] = useState('');
 
+  // Firebase state
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+  const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
+  const [siteRentals, setSiteRentals] = useState<SiteRental[]>([]);
+  const [siteRepairs, setSiteRepairs] = useState<SiteRepair[]>([]);
+
   useEffect(() => {
     const loadAppData = () => {
         try {
@@ -86,6 +97,7 @@ const App: React.FC = () => {
                 setSales(db.loadSales());
                 setVendors(db.loadVendors());
                 setSmsSettings(db.loadSmsSettings());
+                initializeFirebase();
             }
         } catch (error) {
             console.error("Error loading app data from localStorage:", error);
@@ -98,11 +110,86 @@ const App: React.FC = () => {
     loadAppData();
   }, []);
 
+  const initializeFirebase = () => {
+    if (firebaseInitialized || typeof firebase === 'undefined') return;
+    try {
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjoBK7feqbPzON8BoOZNo4UQ3xbt5ZgkM",
+            authDomain: "spincityrentalsnew.firebaseapp.com",
+            projectId: "spincityrentalsnew",
+            storageBucket: "spincityrentalsnew.firebasestorage.app",
+            messagingSenderId: "252954471415",
+            appId: "1:252954471415:web:01a747ebf09fb92d645cf2"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        setFirebaseInitialized(true);
+        const firestore = firebase.firestore();
+
+        // Listener for Contact Submissions
+        firestore.collection('contactSubmissions').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+            const contactsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'contact' })) as SiteContact[];
+            setSiteContacts(contactsData);
+        });
+
+        // Listener for Rental Agreements
+        firestore.collection('rentalAgreements').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+            const rentalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'rental' })) as SiteRental[];
+            setSiteRentals(rentalsData);
+        });
+
+        // Listener for Repair Requests
+        firestore.collection('repairRequests').orderBy('submissionDate', 'desc').onSnapshot(snapshot => {
+            const repairsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'repair' })) as SiteRepair[];
+            setSiteRepairs(repairsData);
+        });
+    } catch(e) {
+        console.error("Firebase initialization failed:", e);
+        showNotification("Could not connect to site monitoring database.");
+    }
+  };
+
+  const handleUpdateFirebaseStatus = (id: string, type: 'contact' | 'rental' | 'repair', newStatus: 'new' | 'pending' | 'completed') => {
+    if(!firebaseInitialized) return;
+
+    let collectionName = '';
+    if (type === 'contact') collectionName = 'contactSubmissions';
+    else if (type === 'rental') collectionName = 'rentalAgreements';
+    else if (type === 'repair') collectionName = 'repairRequests';
+    else return;
+
+    firebase.firestore().collection(collectionName).doc(id).update({ status: newStatus })
+        .then(() => showNotification(`Status updated to ${newStatus}.`))
+        .catch((error: any) => {
+            console.error("Error updating status: ", error);
+            showNotification("Failed to update status.");
+        });
+};
+
+const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' | 'repair') => {
+    if(!firebaseInitialized) return;
+
+    let collectionName = '';
+    if (type === 'contact') collectionName = 'contactSubmissions';
+    else if (type === 'rental') collectionName = 'rentalAgreements';
+    else if (type === 'repair') collectionName = 'repairRequests';
+    else return;
+
+    handleAction(() => {
+        firebase.firestore().collection(collectionName).doc(id).delete()
+            .then(() => showNotification(`Submission deleted successfully.`))
+            .catch((error: any) => {
+                console.error("Error deleting submission: ", error);
+                showNotification("Failed to delete submission.");
+            });
+    });
+};
+
+
   useEffect(() => {
     const handleBeforeUnload = () => {
         if (autoBackupEnabled) {
-            // This creates and triggers a download of the backup file.
-            // Note: Modern browsers may block automatic downloads initiated during page unload for security reasons.
             const jsonData = db.getBackupData();
             const blob = new Blob([jsonData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -154,10 +241,12 @@ const App: React.FC = () => {
     db.setCurrentUserId(user.id);
     handleViewChange(AppView.Dashboard);
     showNotification(`Welcome back, ${user.name}!`);
-    // Reload all data for the logged-in user
     setContacts(db.loadContacts());
     setRentals(db.loadRentals());
     setRepairs(db.loadRepairs());
+    if (user.role === 'Admin') {
+        initializeFirebase();
+    }
   };
 
   const handleRegisterSuccess = (user: User) => {
@@ -170,6 +259,7 @@ const App: React.FC = () => {
   const handleLogout = () => handleAction(() => {
     db.setCurrentUserId(null);
     setCurrentUser(null);
+    setFirebaseInitialized(false);
   });
   
   const handleCreateUser = (newUser: Omit<User, 'id'>) => handleAction(() => {
@@ -356,12 +446,14 @@ const App: React.FC = () => {
       case AppView.Vendors: return 'Vendor Management';
       case AppView.Users: return 'Users';
       case AppView.Settings: return 'Settings';
+      case AppView.MonitorSite: return 'Site Monitoring Dashboard';
+      case AppView.HtmlViewer: return 'HTML Viewer';
       default: return 'Dashboard';
     }
   };
 
   const renderView = () => {
-    const adminOnlyViews = [AppView.Users, AppView.Settings, AppView.Notifications, AppView.Reports];
+    const adminOnlyViews = [AppView.Users, AppView.Settings, AppView.Notifications, AppView.Reports, AppView.MonitorSite, AppView.HtmlViewer];
     if (!isAdmin && adminOnlyViews.includes(currentView)) {
         return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} />;
     }
@@ -402,6 +494,18 @@ const App: React.FC = () => {
         return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} showNotification={showNotification} />;
       case AppView.Reports:
         return <Reports contacts={contacts} rentals={rentals} repairs={repairs} handleAction={handleAction} />;
+      case AppView.MonitorSite:
+        return <MonitorSite 
+                    siteContacts={siteContacts} 
+                    siteRentals={siteRentals} 
+                    siteRepairs={siteRepairs} 
+                    onUpdateStatus={handleUpdateFirebaseStatus} 
+                    onDeleteSubmission={handleDeleteFirebaseSubmission}
+                    adminKey={adminKey}
+                    showNotification={showNotification}
+                />;
+      case AppView.HtmlViewer:
+        return <HtmlViewer />;
       default:
         return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} />;
     }

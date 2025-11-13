@@ -10,6 +10,8 @@ export enum AppView {
   Reports,
   Vendors,
   Settings,
+  MonitorSite,
+  HtmlViewer,
 }
 
 export interface User {
@@ -194,4 +196,71 @@ export interface Sale {
     buyerAddress: string;
     billOfSaleLink: string;
     notes?: string;
+}
+
+// --- Firebase Site Monitoring Types ---
+
+export interface SiteContact {
+    id: string;
+    type: 'contact';
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    plan: string;
+    hookups: string;
+    message: string;
+    timestamp: string;
+    status: 'new' | 'pending' | 'completed';
+}
+
+export interface SiteRental {
+    id: string;
+    type: 'rental';
+    Renter_Verified_Email: string;
+    lessee_name: string;
+    renter_name: string;
+    property_address: string;
+    selected_plan: string;
+    emergency_name: string;
+    emergency_relationship: string;
+    emergency_address: string;
+    emergency_email: string;
+    emergency_phone: string;
+    delivery_payment: string;
+    maintenance_option: string;
+    payment_terms_acknowledged: string;
+    relocation_terms_acknowledged: string;
+    additional_terms_acknowledged: string;
+    signature_name: string;
+    signature_date: string;
+    digital_signature: string;
+    timestamp: string;
+    status: 'new' | 'pending' | 'completed';
+}
+
+export interface SiteRepair {
+    id: string;
+    type: 'repair';
+    customerName: string;
+    email: string;
+    phone: string;
+    accountNumber?: string;
+    serviceAddress: string;
+    serviceCity: string;
+    serviceZip: string;
+    applianceType: string;
+    applianceAge?: string;
+    issueType: string;
+    issueDescription: string;
+    errorCodes?: string;
+    urgency: 'high' | 'medium' | 'low';
+    preferredDate?: string;
+    preferredTime?: string;
+    additionalInfo?: string;
+    specialInstructions?: string;
+    imageCount: number;
+    imageNames: string[];
+    submissionDate: string;
+    status: 'new' | 'pending' | 'completed';
 }

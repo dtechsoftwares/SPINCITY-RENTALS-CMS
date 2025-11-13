@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppView, User } from '../types';
-import { DashboardIcon, ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon, SettingsIcon, LogoutIcon, NotificationsIcon, ReportsIcon, InventoryIcon, SalesLogIcon, VendorsIcon } from './Icons';
+import { DashboardIcon, ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon, SettingsIcon, LogoutIcon, NotificationsIcon, ReportsIcon, InventoryIcon, SalesLogIcon, VendorsIcon, MonitorIcon, HtmlViewerIcon } from './Icons';
 
 interface SidebarProps {
   currentView: AppView;
@@ -21,6 +21,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
     { view: AppView.SalesLog, icon: SalesLogIcon, label: 'Sales Log', adminOnly: false },
     { view: AppView.Repairs, icon: RepairsIcon, label: 'Repairs', adminOnly: false },
     { view: AppView.Vendors, icon: VendorsIcon, label: 'Vendors', adminOnly: false },
+    { view: AppView.MonitorSite, icon: MonitorIcon, label: 'Monitor Site', adminOnly: true },
+    { view: AppView.HtmlViewer, icon: HtmlViewerIcon, label: 'HTML Viewer', adminOnly: true },
     { view: AppView.Reports, icon: ReportsIcon, label: 'Reports', adminOnly: true },
     { view: AppView.Notifications, icon: NotificationsIcon, label: 'Notifications', adminOnly: true },
     { view: AppView.Users, icon: UsersIcon, label: 'Users', adminOnly: true },
