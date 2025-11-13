@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair } from './types';
+import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair, NotificationSettings } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Users from './components/Users';
@@ -62,6 +62,7 @@ const App: React.FC = () => {
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [splashLogo, setSplashLogo] = useState<string | null>(null);
   const [smsSettings, setSmsSettings] = useState<SmsSettings>({ accountSid: '', authToken: '', twilioPhoneNumber: '' });
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ smsEnabled: true, emailEnabled: true });
   const [adminKey, setAdminKey] = useState<string>('');
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   
@@ -86,6 +87,7 @@ const App: React.FC = () => {
             setAppLogo(db.loadAppLogo());
             setSplashLogo(db.loadSplashLogo());
             setAdminKey(db.loadAdminKey());
+            setNotificationSettings(db.loadNotificationSettings());
             setAutoBackupEnabled(db.loadAutoBackupSetting());
 
             if (appUser) {
@@ -402,6 +404,11 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
     db.saveSmsSettings(settings);
     setSmsSettings(settings);
   });
+
+  const handleUpdateNotificationSettings = (settings: NotificationSettings) => handleAction(() => {
+    db.saveNotificationSettings(settings);
+    setNotificationSettings(settings);
+  });
   
   const handleUpdateAdminKey = (key: string) => handleAction(() => {
     db.saveAdminKey(key);
@@ -485,13 +492,15 @@ const handleDeleteFirebaseSubmission = (id: string, type: 'contact' | 'rental' |
                     onRestoreData={handleRestoreData}
                     autoBackupEnabled={autoBackupEnabled}
                     onToggleAutoBackup={handleToggleAutoBackup}
+                    notificationSettings={notificationSettings}
+                    onUpdateNotificationSettings={handleUpdateNotificationSettings}
                 />;
       case AppView.Rentals:
         return <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.Repairs:
         return <Repairs repairs={repairs} contacts={contacts} currentUser={currentUser} onCreateRepair={handleCreateRepair} onUpdateRepair={handleUpdateRepair} onDeleteRepair={handleDeleteRepair} showNotification={showNotification} adminKey={adminKey} />;
       case AppView.Notifications:
-        return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} showNotification={showNotification} />;
+        return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} showNotification={showNotification} notificationSettings={notificationSettings} />;
       case AppView.Reports:
         return <Reports contacts={contacts} rentals={rentals} repairs={repairs} handleAction={handleAction} />;
       case AppView.MonitorSite:

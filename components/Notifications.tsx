@@ -1,15 +1,18 @@
 import React from 'react';
-import { Contact, SmsSettings } from '../types';
+import { Contact, SmsSettings, NotificationSettings } from '../types';
 
 interface NotificationsProps {
     contacts: Contact[];
     smsSettings: SmsSettings;
+    notificationSettings: NotificationSettings;
     handleAction: (action: () => void) => void;
     showNotification: (message: string) => void;
 }
 
-const Notifications: React.FC<NotificationsProps> = ({ contacts, smsSettings, handleAction, showNotification }) => {
-  const isConfigured = smsSettings.accountSid && smsSettings.authToken && smsSettings.twilioPhoneNumber;
+const Notifications: React.FC<NotificationsProps> = ({ contacts, smsSettings, notificationSettings, handleAction, showNotification }) => {
+  const isSmsConfigured = smsSettings.accountSid && smsSettings.authToken && smsSettings.twilioPhoneNumber;
+  const isSmsEnabled = notificationSettings.smsEnabled;
+
   return (
     <div className="p-8 text-brand-text">
       <h1 className="text-3xl font-bold mb-8">Notifications</h1>
@@ -19,14 +22,23 @@ const Notifications: React.FC<NotificationsProps> = ({ contacts, smsSettings, ha
               <p className="text-gray-400 text-sm mt-2">This section will allow admins to send bulk SMS messages to all clients using your configured Twilio account.</p>
           </div>
           
-          <div className={`p-4 rounded-lg border ${isConfigured ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-              <h3 className="font-bold text-lg">{isConfigured ? 'Twilio is Configured' : 'Twilio is Not Configured'}</h3>
-              <p className="text-sm text-gray-600">
-                  {isConfigured 
-                      ? `Messages will be sent from ${smsSettings.twilioPhoneNumber}.`
-                      : 'Please configure your Twilio Account SID, Auth Token, and Phone Number in the Settings page to enable this feature.'}
-              </p>
-          </div>
+          {isSmsEnabled ? (
+              <div className={`p-4 rounded-lg border ${isSmsConfigured ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                  <h3 className="font-bold text-lg">{isSmsConfigured ? 'Twilio is Configured' : 'Twilio is Not Configured'}</h3>
+                  <p className="text-sm text-gray-600">
+                      {isSmsConfigured 
+                          ? `Messages will be sent from ${smsSettings.twilioPhoneNumber}.`
+                          : 'Please configure your Twilio Account SID, Auth Token, and Phone Number in the Settings page to enable this feature.'}
+                  </p>
+              </div>
+          ) : (
+            <div className="p-4 rounded-lg border bg-gray-100 border-gray-300">
+                <h3 className="font-bold text-lg text-gray-700">SMS Notifications Disabled</h3>
+                <p className="text-sm text-gray-600">
+                    SMS notifications are currently turned off. You can enable them in the Settings page.
+                </p>
+            </div>
+          )}
       </div>
     </div>
   );

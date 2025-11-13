@@ -149,6 +149,11 @@ export interface SmsSettings {
     twilioPhoneNumber: string;
 }
 
+export interface NotificationSettings {
+    smsEnabled: boolean;
+    emailEnabled: boolean;
+}
+
 export interface Vendor {
     id: string;
     vendorId: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SmsSettings } from '../types';
+import { SmsSettings, NotificationSettings } from '../types';
 import * as db from '../utils/storage';
-import { CloseIcon } from './Icons';
+import { CloseIcon, HelpIcon } from './Icons';
 
 const InputField = ({ label, description, type = 'text', value, placeholder, name, onChange }: { label: string, description?: string, type?: string, value: string, placeholder?: string, name: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
   const [show, setShow] = useState(false);
@@ -33,19 +33,22 @@ const InputField = ({ label, description, type = 'text', value, placeholder, nam
   );
 };
 
-const ToggleSwitch = ({ label, description, enabled, setEnabled }: { label: string, description: string, enabled: boolean, setEnabled: (enabled: boolean) => void }) => (
-  <div className="flex justify-between items-center">
-    <div>
-      <h3 className="text-lg font-semibold text-brand-text">{label}</h3>
-      <p className="text-sm text-gray-500">{description}</p>
+const ToggleSwitch = ({ label, description, enabled, setEnabled, disabled = false }: { label: string, description: React.ReactNode, enabled: boolean, setEnabled: (enabled: boolean) => void, disabled?: boolean }) => (
+    <div className="flex justify-between items-center w-full">
+      <div className="flex-grow pr-4">
+        <h3 className="text-lg font-semibold text-brand-text">{label}</h3>
+        <div className="text-sm text-gray-500">{description}</div>
+      </div>
+      <button
+        onClick={() => !disabled && setEnabled(!enabled)}
+        disabled={disabled}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors flex-shrink-0 ${
+            enabled && !disabled ? 'bg-brand-green' : 'bg-gray-200'
+        } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+      >
+        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
     </div>
-    <button
-      onClick={() => setEnabled(!enabled)}
-      className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${enabled ? 'bg-brand-green' : 'bg-gray-200'}`}
-    >
-      <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-    </button>
-  </div>
 );
 
 const BackupInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
@@ -81,6 +84,79 @@ const BackupInfoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
     );
 };
 
+const PermissionHelpModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+    if (!isOpen) return null;
+
+    const getBrowser = () => {
+        const ua = navigator.userAgent;
+        if (ua.includes("Firefox")) return "Firefox";
+        if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+        if (ua.includes("Edg")) return "Edge";
+        if (ua.includes("Chrome")) return "Chrome";
+        return "other";
+    };
+
+    const browser = getBrowser();
+
+    const instructions = {
+        Chrome: (
+            <>
+                <p>To allow automatic downloads in Chrome:</p>
+                <ol className="list-decimal list-inside space-y-2 mt-2">
+                    <li>Go to Settings {'>'} Privacy and security {'>'} Site settings.</li>
+                    <li>Scroll down and click on "Additional permissions".</li>
+                    <li>Click on "Automatic downloads".</li>
+                    <li>Under "Allowed to ask to automatically download multiple files", click "Add".</li>
+                    <li>Enter the URL of this site and click "Add".</li>
+                </ol>
+            </>
+        ),
+        Edge: (
+             <>
+                <p>To allow automatic downloads in Edge:</p>
+                <ol className="list-decimal list-inside space-y-2 mt-2">
+                    <li>Go to Settings {'>'} Cookies and site permissions.</li>
+                    <li>Scroll down and click on "Automatic downloads".</li>
+                    <li>Under the "Allow" section, click "Add".</li>
+                    <li>Enter the URL of this site and click "Add".</li>
+                </ol>
+            </>
+        ),
+        Firefox: (
+            <p>Firefox handles downloads differently and may not have a per-site setting for automatic downloads. It will typically prompt you for each download, which is the recommended security practice.</p>
+        ),
+        Safari: (
+            <p>Safari does not allow sites to trigger automatic downloads without user interaction. You will likely be prompted to "Allow" or "Deny" the download when you close the app.</p>
+        ),
+        other: (
+            <p>Please consult your browser's documentation on how to manage "automatic downloads" permissions for specific websites.</p>
+        )
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white text-brand-text w-full max-w-lg rounded-xl shadow-2xl border border-gray-200">
+                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                    <h2 className="text-2xl font-bold flex items-center"><HelpIcon className="w-6 h-6 mr-3 text-brand-green"/>Automatic Backup Help</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-brand-text"><CloseIcon /></button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <p>Modern browsers often block websites from automatically downloading files for security reasons. The "Automatic Backup on Exit" feature relies on this permission.</p>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 className="font-bold text-lg mb-2">Instructions for {browser}</h3>
+                        <div className="text-sm text-gray-700">{instructions[browser]}</div>
+                    </div>
+                </div>
+                 <div className="flex justify-end p-6 bg-gray-50 rounded-b-xl">
+                    <button onClick={onClose} className="bg-brand-green text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-green-dark">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface SettingsProps {
     onUpdateLogo: (logo: string | null) => void;
     currentLogo: string | null;
@@ -94,6 +170,8 @@ interface SettingsProps {
     onRestoreData: (jsonData: string) => void;
     autoBackupEnabled: boolean;
     onToggleAutoBackup: (enabled: boolean) => void;
+    notificationSettings: NotificationSettings;
+    onUpdateNotificationSettings: (settings: NotificationSettings) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ 
@@ -108,11 +186,10 @@ const Settings: React.FC<SettingsProps> = ({
     showNotification,
     onRestoreData,
     autoBackupEnabled,
-    onToggleAutoBackup
+    onToggleAutoBackup,
+    notificationSettings,
+    onUpdateNotificationSettings
 }) => {
-    const [smsEnabled, setSmsEnabled] = useState(true);
-    const [emailEnabled, setEmailEnabled] = useState(true);
-    
     const [logoPreview, setLogoPreview] = useState<string | null>(currentLogo);
     const [logoFile, setLogoFile] = useState<File | null>(null);
     
@@ -124,9 +201,31 @@ const Settings: React.FC<SettingsProps> = ({
     
     const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
     const restoreInputRef = useRef<HTMLInputElement>(null);
+    
+    const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'unknown'>('unknown');
+    const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
     useEffect(() => setLocalSmsSettings(smsSettings), [smsSettings]);
     useEffect(() => setLocalAdminKey(adminKey), [adminKey]);
+
+    useEffect(() => {
+        if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+            const permissionName = 'automatic-downloads' as PermissionName;
+            navigator.permissions.query({ name: permissionName })
+            .then((result) => {
+                setPermissionStatus(result.state);
+                result.onchange = () => {
+                    setPermissionStatus(result.state);
+                };
+            })
+            .catch((error) => {
+                console.warn("Permission query for 'automatic-downloads' failed, falling back to 'unknown'.", error);
+                setPermissionStatus('unknown');
+            });
+        } else {
+            setPermissionStatus('unknown');
+        }
+    }, []);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -193,18 +292,22 @@ const Settings: React.FC<SettingsProps> = ({
     };
 
     const handleBackup = () => {
-        const jsonData = db.getBackupData();
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        const date = new Date().toISOString().split('T')[0];
-        link.download = `spincity_backup_${date}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        showNotification('Backup file downloaded successfully.');
+        showNotification('Preparing your backup...');
+
+        setTimeout(() => {
+            const jsonData = db.getBackupData();
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `spincity_backup_${date}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showNotification('Backup download started. Check your browser.');
+        }, 1000);
     };
 
     const handleRestoreClick = () => {
@@ -225,6 +328,34 @@ const Settings: React.FC<SettingsProps> = ({
         }
         e.target.value = ''; 
     };
+    
+    const isToggleDisabled = permissionStatus === 'denied';
+
+    const getPermissionDescription = () => {
+        switch (permissionStatus) {
+            case 'granted':
+                return 'Permission granted. Backup will download automatically on exit.';
+            case 'denied':
+                return 'Permission denied by browser. Toggle is disabled.';
+            case 'prompt':
+                return 'Your browser will ask for permission on the first backup.';
+            default:
+                return "Automatically saves a backup file when you close the app. May be blocked by your browser.";
+        }
+    };
+
+    const handleNotificationToggle = (type: 'sms' | 'email', enabled: boolean) => {
+        const newSettings = {
+            ...notificationSettings,
+            ...(type === 'sms' ? { smsEnabled: enabled } : { emailEnabled: enabled })
+        };
+        onUpdateNotificationSettings(newSettings);
+        
+        const notificationType = type === 'sms' ? 'SMS' : 'Email';
+        const status = enabled ? 'turned on' : 'turned off';
+        showNotification(`${notificationType} notifications have been ${status}.`);
+    };
+
 
     return (
         <div className="p-8 text-brand-text">
@@ -247,9 +378,17 @@ const Settings: React.FC<SettingsProps> = ({
                         <div className="pt-4 border-t border-gray-200">
                            <ToggleSwitch 
                                 label="Enable Automatic Backup on Exit" 
-                                description="Automatically saves a backup file to your device when you close the app. This may be blocked by your browser's security settings."
+                                description={
+                                    <div className="flex items-center">
+                                        <span>{getPermissionDescription()}</span>
+                                        <button onClick={() => setIsHelpModalOpen(true)} className="ml-2 text-gray-400 hover:text-brand-green flex-shrink-0">
+                                            <HelpIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                }
                                 enabled={autoBackupEnabled} 
                                 setEnabled={onToggleAutoBackup} 
+                                disabled={isToggleDisabled}
                             />
                         </div>
                     </div>
@@ -332,12 +471,23 @@ const Settings: React.FC<SettingsProps> = ({
                 <section>
                     <h2 className="text-2xl font-bold border-b border-gray-200 pb-2 mb-6">Notifications</h2>
                     <div className="space-y-6">
-                        <ToggleSwitch label="SMS Notifications" description="Receive notifications via SMS for important events." enabled={smsEnabled} setEnabled={setSmsEnabled} />
-                        <ToggleSwitch label="Email Notifications" description="Receive notifications via email for summaries and alerts." enabled={emailEnabled} setEnabled={setEmailEnabled} />
+                        <ToggleSwitch 
+                            label="SMS Notifications" 
+                            description="Receive notifications via SMS for important events." 
+                            enabled={notificationSettings.smsEnabled} 
+                            setEnabled={(enabled) => handleNotificationToggle('sms', enabled)} 
+                        />
+                        <ToggleSwitch 
+                            label="Email Notifications" 
+                            description="Receive notifications via email for summaries and alerts." 
+                            enabled={notificationSettings.emailEnabled} 
+                            setEnabled={(enabled) => handleNotificationToggle('email', enabled)}
+                        />
                     </div>
                 </section>
             </div>
             <BackupInfoModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} />
+            <PermissionHelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         </div>
     );
 };

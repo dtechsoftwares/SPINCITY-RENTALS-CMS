@@ -1,4 +1,4 @@
-import { User, Contact, InventoryItem, Vendor, Rental, Repair, Sale, SmsSettings } from '../types';
+import { User, Contact, InventoryItem, Vendor, Rental, Repair, Sale, SmsSettings, NotificationSettings } from '../types';
 
 const get = <T>(key: string, fallback: T): T => {
     try {
@@ -34,6 +34,7 @@ const KEYS = {
     APP_LOGO: 'spincity_appLogo',
     SPLASH_LOGO: 'spincity_splashLogo',
     SMS_SETTINGS: 'spincity_smsSettings',
+    NOTIFICATION_SETTINGS: 'spincity_notificationSettings',
     AUTO_BACKUP_SETTING: 'spincity_autoBackupSetting',
 };
 
@@ -57,6 +58,8 @@ export const loadSplashLogo = () => get<string | null>(KEYS.SPLASH_LOGO, null);
 export const saveSplashLogo = (logo: string | null) => set(KEYS.SPLASH_LOGO, logo);
 export const loadSmsSettings = () => get<SmsSettings>(KEYS.SMS_SETTINGS, { accountSid: '', authToken: '', twilioPhoneNumber: '' });
 export const saveSmsSettings = (settings: SmsSettings) => set(KEYS.SMS_SETTINGS, settings);
+export const loadNotificationSettings = () => get<NotificationSettings>(KEYS.NOTIFICATION_SETTINGS, { smsEnabled: true, emailEnabled: true });
+export const saveNotificationSettings = (settings: NotificationSettings) => set(KEYS.NOTIFICATION_SETTINGS, settings);
 export const loadAutoBackupSetting = () => get<boolean>(KEYS.AUTO_BACKUP_SETTING, false);
 export const saveAutoBackupSetting = (isEnabled: boolean) => set(KEYS.AUTO_BACKUP_SETTING, isEnabled);
 
