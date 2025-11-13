@@ -177,7 +177,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                     onChange={e => setFilter(e.target.value)}
                     className="w-full md:w-1/3 mb-4 bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text"
                 />
-                 <div className="overflow-x-auto">
+                 <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left min-w-[720px]">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                             <tr>
@@ -199,6 +199,32 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Cards for small screens */}
+                <div className="md:hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {filteredData.map(item => (
+                            <li key={item.id} className="p-4 space-y-3">
+                                <div className="space-y-2">
+                                    {columns.map(col => (
+                                        <div key={col.key} className="flex justify-between items-center text-sm">
+                                            <p className="font-semibold text-gray-500">{col.header}</p>
+                                            {col.key === 'status' ? (
+                                                <span className={`px-2 py-1 text-xs rounded-full font-semibold ${item.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{item.status || 'new'}</span>
+                                            ) : (
+                                                <p className="text-gray-800 text-right break-all">{col.render(item)}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex justify-end space-x-4 text-sm pt-3 mt-3 border-t">
+                                    <button onClick={() => setSelectedSubmission(item)} className="font-semibold text-brand-green hover:underline">View Details</button>
+                                    <button onClick={() => onDelete(item)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         )

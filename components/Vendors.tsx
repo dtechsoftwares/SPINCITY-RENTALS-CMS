@@ -141,7 +141,8 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
             </div>
 
             <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                <div className="overflow-x-auto">
+                {/* Table for medium and up screens */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left min-w-[720px]">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                             <tr>
@@ -173,6 +174,36 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Cards for small screens */}
+                <div className="md:hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {vendors.map(vendor => (
+                            <li key={vendor.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold text-lg">{vendor.vendorName}</p>
+                                        <p className="text-sm text-gray-500">{vendor.vendorId}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold">{vendor.contactPerson}</p>
+                                        <p className="text-sm text-gray-500">Items: {itemsPurchasedMap.get(vendor.vendorName) || 0}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">{vendor.phone}</p>
+                                    <p className="text-sm text-gray-500 break-all">{vendor.email}</p>
+                                </div>
+                                <div className="flex justify-end items-center pt-2 border-t">
+                                    <div className="flex space-x-4 text-sm">
+                                        <button onClick={() => handleOpenModal(vendor)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
 

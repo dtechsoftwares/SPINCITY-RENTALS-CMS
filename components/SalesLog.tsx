@@ -152,7 +152,8 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
             </div>
 
             <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                <div className="overflow-x-auto">
+                 {/* Table for medium and up screens */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left min-w-[720px]">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                             <tr>
@@ -189,6 +190,39 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
                             })}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Cards for small screens */}
+                <div className="md:hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {sales.map(sale => {
+                            const item = inventoryMap.get(sale.itemId);
+                            return (
+                                <li key={sale.id} className="p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-bold text-lg">{item ? `${item.itemType} - ${item.makeModel}` : 'Unknown Item'}</p>
+                                            <p className="text-sm text-gray-500">Sale ID: {sale.saleId}</p>
+                                        </div>
+                                        <p className="text-lg font-semibold">${sale.salePrice.toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">{sale.buyerName}</p>
+                                        <p className="text-sm text-gray-500">Date: {sale.saleDate}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-brand-green hover:underline">
+                                            View Bill of Sale
+                                        </a>
+                                        <div className="flex space-x-4 text-sm">
+                                            <button onClick={() => handleOpenModal(sale)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
+                                            {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                        </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 </div>
             </div>
 

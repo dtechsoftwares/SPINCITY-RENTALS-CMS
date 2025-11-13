@@ -153,9 +153,10 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
         <p className="text-gray-500 text-sm sm:text-right">New users can be added via the registration page.<br/>You can manage user roles here.</p>
       </div>
 
-      <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-        <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[640px]">
+      <div className="bg-white shadow-sm rounded-xl border border-gray-200">
+        {/* Table for medium and up screens */}
+        <div className="overflow-x-auto hidden md:block">
+            <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                 <tr>
                 <th className="p-4 font-semibold">Name</th>
@@ -196,6 +197,39 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
                 ))}
             </tbody>
             </table>
+        </div>
+
+        {/* Cards for small screens */}
+        <div className="md:hidden">
+            <ul className="divide-y divide-gray-200">
+                {users.map(user => (
+                    <li key={user.id} className="p-4 space-y-3">
+                        <div className="flex items-center space-x-4">
+                            <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover" />
+                            <div className="flex-1">
+                                <p className="font-bold text-lg">{user.name}{user.id === currentUser.id && " (You)"}</p>
+                                <p className="text-sm text-gray-500 break-all">{user.email}</p>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className={`px-3 py-1 text-sm rounded-full font-semibold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
+                                {user.role}
+                            </span>
+                            <div className="flex space-x-4 text-sm">
+                                <button onClick={() => openModalForView(user)} className="font-semibold text-brand-green hover:text-brand-green-dark">View</button>
+                                {isAdmin && (
+                                    <>
+                                        <button onClick={() => openModalForEdit(user)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
+                                        {user.id !== currentUser.id && (
+                                            <button onClick={() => handleDeleteRequest(user.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </li>
+                ))}
+            </ul>
         </div>
       </div>
 

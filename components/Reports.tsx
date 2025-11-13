@@ -137,9 +137,9 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, handleAct
 
     return (
         <div className="p-8 text-brand-text">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
                 <h1 className="text-3xl font-bold">Reports</h1>
-                <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg">
+                <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg self-start sm:self-auto">
                     <PeriodButton value="daily" label="Today" />
                     <PeriodButton value="monthly" label="This Month" />
                     <PeriodButton value="yearly" label="This Year" />

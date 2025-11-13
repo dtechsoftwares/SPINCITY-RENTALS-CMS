@@ -303,7 +303,8 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
             </div>
 
             <div className="bg-white shadow-sm rounded-xl overflow-hidden border border-gray-200">
-                <div className="overflow-x-auto">
+                {/* Table for medium and up screens */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-left min-w-[720px]">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-sm">
                             <tr>
@@ -337,6 +338,33 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
                             ))}
                         </tbody>
                     </table>
+                </div>
+                 {/* Cards for small screens */}
+                <div className="md:hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {repairs.map(repair => (
+                             <li key={repair.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold text-lg">{contactMap.get(repair.contactId)?.fullName || `Contact ID: ${repair.contactId}`}</p>
+                                        <p className="text-sm text-gray-500">{repair.serviceAddress}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(repair.status)}`}>{repair.status}</span>
+                                </div>
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <p className="text-sm text-gray-500">{repair.appliance}</p>
+                                        <p className="text-sm text-gray-500">Reported: {repair.reportedDate}</p>
+                                    </div>
+                                    <div className="flex space-x-4 text-sm">
+                                        <button onClick={() => setViewingRepair(repair)} className="font-semibold text-brand-green hover:text-brand-green-dark">View</button>
+                                        <button onClick={() => handleOpenModal(repair)} className="font-semibold text-blue-600 hover:text-blue-500">Edit</button>
+                                        {isAdmin && <button onClick={() => handleDeleteRequest(repair.id)} className="font-semibold text-red-500 hover:text-red-400">Delete</button>}
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
 
