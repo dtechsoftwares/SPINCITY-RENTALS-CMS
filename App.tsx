@@ -18,9 +18,8 @@ import MonitorSite from './components/MonitorSite';
 import HtmlViewer from './components/HtmlViewer';
 import * as db from './utils/storage';
 import { auth, db as firestoreDb } from './utils/firebase';
-// Fix: Use named imports for firebase/auth functions.
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, onSnapshot, collection, getDoc, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
+// FIX: Module '"firebase/auth"' has no exported member 'onAuthStateChanged' or 'signOut'. Removed modular imports.
+import { collection, doc, onSnapshot, query, orderBy, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Spinner from './components/Spinner';
 import Notification from './components/Notification';
 
@@ -77,6 +76,7 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unsubscribers, setUnsubscribers] = useState<(() => void)[]>([]);
+  const [loginError, setLoginError] = useState('');
 
   // Firebase state
   const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
@@ -104,8 +104,8 @@ const App: React.FC = () => {
         setIsSettingsInitialised(true);
     });
 
-    // Fix: Correctly call onAuthStateChanged from the named import.
-    const authUnsubscriber = onAuthStateChanged(auth, async (authUser) => {
+    // FIX: Using compat namespaced API `auth.onAuthStateChanged` instead of modular `onAuthStateChanged(auth, ...)`.
+    const authUnsubscriber = auth.onAuthStateChanged(async (authUser: any) => {
         // Unsubscribe from any existing data listeners
         unsubscribers.forEach(unsub => unsub());
         setUnsubscribers([]);
@@ -115,13 +115,13 @@ const App: React.FC = () => {
             const userDocSnap = await getDoc(userDocRef);
 
             if (userDocSnap.exists()) {
+                setLoginError('');
                 const userData = { id: userDocSnap.id, ...userDocSnap.data() } as User;
                 setCurrentUser(userData);
 
                 // Set up real-time listeners for all data collections
                 const newUnsubscribers: (()=>void)[] = [];
                 
-                // Fix: Add a type for the config object to make 'orderDirection' an optional property.
                 type CollectionConfig = {
                     setter: (data: any) => void;
                     orderByField: string;
@@ -153,8 +153,8 @@ const App: React.FC = () => {
                 setUnsubscribers(newUnsubscribers);
 
             } else {
-                // Fix: Correctly call signOut from the named import.
-                await signOut(auth);
+                await auth.signOut();
+                setLoginError('Your user account was not found in the database. Please register or contact an administrator.');
             }
         } else {
             setCurrentUser(null);
@@ -247,7 +247,7 @@ const App: React.FC = () => {
       const result = await action();
       return result;
     } catch (error) {
-      console.error("An error occurred during the action:", error instanceof Error ? error.message : String(error));
+      console.error("An error occurred during the action:", error);
       showNotification('An error occurred. Please try again.');
     } finally {
       setIsActionLoading(false);
@@ -268,8 +268,8 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => handleAction(async () => {
-    // Fix: Correctly call signOut from the named import.
-    await signOut(auth);
+    // FIX: Using compat namespaced API `auth.signOut()` instead of modular `signOut(auth)`.
+    await auth.signOut();
   });
   
   const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
@@ -347,7 +347,7 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login adminKey={adminKey} splashLogo={splashLogo} showNotification={showNotification} />;
+    return <Login adminKey={adminKey} splashLogo={splashLogo} showNotification={showNotification} initialError={loginError} />;
   }
 
   const isAdmin = currentUser.role === 'Admin';
@@ -446,7 +446,7 @@ const App: React.FC = () => {
             <Sidebar currentView={currentView} setCurrentView={handleViewChange} onLogout={handleLogout} appLogo={appLogo} currentUser={currentUser} />
         </div>
     
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
             <Header viewName={getViewName(currentView)} user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
             <main className="flex-1 overflow-y-auto bg-gray-50">
                 {renderView()}

@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
-// Fix: Use named import for firebase/auth to resolve module export error.
-import { getAuth } from "firebase/auth";
+// FIX: Module '"firebase/auth"' has no exported member 'getAuth'. Switched to compat library for authentication.
+import firebase from "firebase/compat/app";
+import "firebase/compat/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -12,10 +13,15 @@ const firebaseConfig = {
     appId: "1:252954471415:web:01a747ebf09fb92d645cf2"
 };
 
-// Initialize Firebase
+// Initialize Firebase using the v9 modular syntax
 const app = initializeApp(firebaseConfig);
 
-// Export services
+// Initialize compat app to use compat services
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+
+// Export the v9 service instances
 export const db = getFirestore(app);
-// Fix: Correctly call getAuth from the named import.
-export const auth = getAuth(app);
+export const auth = firebase.auth();
