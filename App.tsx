@@ -86,6 +86,7 @@ const App: React.FC = () => {
   
   const inactivityTimer = useRef<number | null>(null);
   const initialLoad = useRef({ contacts: true, rentals: true, repairs: true });
+  const processedDocIds = useRef(new Set<string>());
 
   const addToast = useCallback((title: string, message: string, type: 'success' | 'info' | 'error' = 'info') => {
     const id = toastId.current++;
@@ -207,9 +208,9 @@ const App: React.FC = () => {
                     newUnsubscribers.push(unsub);
                 });
                 
-                if (userData.role === 'Admin') {
-                    initializeSiteMonitoringListeners(newUnsubscribers);
-                }
+                // Initialize site monitoring for ALL logged-in users to get notifications.
+                // The UI for viewing these submissions is still restricted to Admins.
+                initializeSiteMonitoringListeners(newUnsubscribers);
                 setUnsubscribers(newUnsubscribers);
 
             } else {
@@ -219,6 +220,7 @@ const App: React.FC = () => {
         } else {
             setCurrentUser(null);
             initialLoad.current = { contacts: true, rentals: true, repairs: true };
+            processedDocIds.current.clear();
             [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs].forEach(setter => setter([]));
         }
         setAuthChecked(true);
@@ -247,9 +249,11 @@ const App: React.FC = () => {
       const contactsQuery = query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc'));
       currentUnsubscribers.push(onSnapshot(contactsQuery, (snapshot) => {
           snapshot.docChanges().forEach((change) => {
-              if (change.type === 'added' && !initialLoad.current.contacts) {
+              const docId = change.doc.id;
+              if (change.type === 'added' && !initialLoad.current.contacts && !processedDocIds.current.has(docId)) {
+                  processedDocIds.current.add(docId);
                   const newContact = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'contact' } as SiteContact;
-                  addToast('New Site Submission', `Contact form from ${newContact.name}`, 'info');
+                  addToast('New Site Submission', `Contact form from ${newContact.name}`, 'success');
               }
           });
           initialLoad.current.contacts = false;
@@ -261,9 +265,11 @@ const App: React.FC = () => {
       const rentalsQuery = query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc'));
       currentUnsubscribers.push(onSnapshot(rentalsQuery, (snapshot) => {
           snapshot.docChanges().forEach((change) => {
-              if (change.type === 'added' && !initialLoad.current.rentals) {
+              const docId = change.doc.id;
+              if (change.type === 'added' && !initialLoad.current.rentals && !processedDocIds.current.has(docId)) {
+                  processedDocIds.current.add(docId);
                   const newRental = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'rental' } as SiteRental;
-                  addToast('New Site Submission', `Rental agreement from ${newRental.renter_name}`, 'info');
+                  addToast('New Site Submission', `Rental agreement from ${newRental.renter_name}`, 'success');
               }
           });
           initialLoad.current.rentals = false;
@@ -275,9 +281,11 @@ const App: React.FC = () => {
       const repairsQuery = query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc'));
       currentUnsubscribers.push(onSnapshot(repairsQuery, (snapshot) => {
           snapshot.docChanges().forEach((change) => {
-              if (change.type === 'added' && !initialLoad.current.repairs) {
+              const docId = change.doc.id;
+              if (change.type === 'added' && !initialLoad.current.repairs && !processedDocIds.current.has(docId)) {
+                  processedDocIds.current.add(docId);
                   const newRepair = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'repair' } as SiteRepair;
-                  addToast('New Site Submission', `Repair request from ${newRepair.customerName}`, 'info');
+                  addToast('New Site Submission', `Repair request from ${newRepair.customerName}`, 'success');
               }
           });
           initialLoad.current.repairs = false;
@@ -341,35 +349,35 @@ const App: React.FC = () => {
 
   const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(async () => {
     await db.createContact(newContact);
-    addToast('New Manual Submission', `Client "${newContact.fullName}" created.`, 'info');
+    addToast('New Manual Submission', `Client "${newContact.fullName}" created.`, 'success');
   });
   const handleUpdateContact = (updatedContact: Contact) => handleAction(() => db.updateContact(updatedContact));
   const handleDeleteContact = (contactId: string) => handleAction(() => db.deleteContact(contactId));
 
   const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(async () => {
     await db.createRental(newRental);
-    addToast('New Manual Submission', 'New rental agreement created.', 'info');
+    addToast('New Manual Submission', 'New rental agreement created.', 'success');
   });
   const handleUpdateRental = (updatedRental: Rental) => handleAction(() => db.updateRental(updatedRental));
   const handleDeleteRental = (rentalId: string) => handleAction(() => db.deleteRental(rentalId));
 
   const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(async () => {
     await db.createRepair(newRepair);
-    addToast('New Manual Submission', 'New repair request created.', 'info');
+    addToast('New Manual Submission', 'New repair request created.', 'success');
   });
   const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => db.updateRepair(updatedRepair));
   const handleDeleteRepair = (repairId: string) => handleAction(() => db.deleteRepair(repairId));
 
   const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(async () => {
     await db.createInventory(newItem);
-    addToast('New Manual Submission', `Inventory item "${newItem.makeModel}" added.`, 'info');
+    addToast('New Manual Submission', `Inventory item "${newItem.makeModel}" added.`, 'success');
   });
   const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => db.updateInventory(updatedItem));
   const handleDeleteInventory = (itemId: string) => handleAction(() => db.deleteInventory(itemId));
 
   const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(async () => {
     await db.createSale(newSale);
-    addToast('New Manual Submission', `Sale to "${newSale.buyerName}" recorded.`, 'info');
+    addToast('New Manual Submission', `Sale to "${newSale.buyerName}" recorded.`, 'success');
     const soldItem = inventory.find(i => i.id === newSale.itemId);
     if(soldItem) {
         await handleUpdateInventory({ ...soldItem, status: 'Sold' });
@@ -399,7 +407,7 @@ const App: React.FC = () => {
 
   const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(async () => {
     await db.createVendor(newVendor);
-    addToast('New Manual Submission', `Vendor "${newVendor.vendorName}" added.`, 'info');
+    addToast('New Manual Submission', `Vendor "${newVendor.vendorName}" added.`, 'success');
   });
   const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => db.updateVendor(updatedVendor));
   const handleDeleteVendor = (vendorId: string) => handleAction(() => db.deleteVendor(vendorId));
