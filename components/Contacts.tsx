@@ -125,11 +125,11 @@ interface ContactsProps {
     onCreateContact: (contact: Omit<Contact, 'id'>) => void;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContact: (contactId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateContact, onUpdateContact, onDeleteContact, showNotification, adminKey }) => {
+const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateContact, onUpdateContact, onDeleteContact, addToast, adminKey }) => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [viewingContact, setViewingContact] = useState<Contact | null>(null);
@@ -169,16 +169,15 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
 
   const handleSubmit = () => {
     if (!formData.fullName || !formData.email) {
-        alert('Full Name and Email are required.');
+        addToast('Error', 'Full Name and Email are required.', 'error');
         return;
     }
 
     if (editingContact) {
         onUpdateContact({ ...editingContact, ...formData });
-        showNotification('Client updated successfully.');
+        addToast('Success', 'Client updated successfully.', 'success');
     } else {
         onCreateContact(formData);
-        showNotification('Client created successfully.');
     }
     closeFormModal();
   };
@@ -191,7 +190,7 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
   const handleDeleteConfirm = () => {
     if (contactToDelete) {
         onDeleteContact(contactToDelete);
-        showNotification('Client deleted successfully.');
+        addToast('Success', 'Client deleted successfully.', 'success');
     }
     setIsConfirmModalOpen(false);
     setContactToDelete(null);
@@ -263,7 +262,7 @@ const Contacts: React.FC<ContactsProps> = ({ contacts, currentUser, onCreateCont
         title="Delete Client"
         message={`Are you sure you want to permanently delete this client? All associated data will be removed.`}
         adminKey={adminKey}
-        showNotification={showNotification}
+        addToast={addToast}
       />
     </div>
   );

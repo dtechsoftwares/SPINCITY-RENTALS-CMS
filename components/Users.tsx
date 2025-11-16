@@ -65,11 +65,11 @@ interface UsersProps {
     currentUser: User;
     onUpdateUser: (user: User) => void;
     onDeleteUser: (userId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDeleteUser, showNotification, adminKey }) => {
+const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDeleteUser, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -122,12 +122,12 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
 
     const handleSubmit = () => {
         if (!formData.name || !formData.email || !formData.role || !formData.avatar) {
-            alert('Please fill all fields');
+            addToast('Error', 'Please fill all fields', 'error');
             return;
         }
         if (editingUser) {
             onUpdateUser({ ...editingUser, ...formData });
-            showNotification('User updated successfully.');
+            addToast('Success', 'User updated successfully.', 'success');
         }
         handleCloseModal();
     };
@@ -140,7 +140,7 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
     const handleDeleteConfirm = () => {
         if (userToDelete) {
             onDeleteUser(userToDelete);
-            showNotification('User deleted successfully.');
+            addToast('Success', 'User deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setUserToDelete(null);
@@ -239,7 +239,7 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
         title="Delete User"
         message="Are you sure you want to permanently delete this user? This only removes them from the CMS, not from the authentication system."
         adminKey={adminKey}
-        showNotification={showNotification}
+        addToast={addToast}
       />
     </div>
   );

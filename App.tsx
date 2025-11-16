@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair, NotificationSettings } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -21,7 +21,7 @@ import { auth, db as firestoreDb } from './utils/firebase';
 // FIX: Module '"firebase/auth"' has no exported member 'onAuthStateChanged' or 'signOut'. Removed modular imports.
 import { collection, doc, onSnapshot, query, orderBy, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Spinner from './components/Spinner';
-import Notification from './components/Notification';
+import ToastContainer, { ToastMessage } from './components/Toasts';
 
 interface HeaderProps {
     viewName: string;
@@ -73,7 +73,8 @@ const App: React.FC = () => {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ smsEnabled: true, emailEnabled: true });
   const [adminKey, setAdminKey] = useState<string>('');
   
-  const [notification, setNotification] = useState('');
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unsubscribers, setUnsubscribers] = useState<(() => void)[]>([]);
   const [loginError, setLoginError] = useState('');
@@ -82,6 +83,61 @@ const App: React.FC = () => {
   const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
   const [siteRentals, setSiteRentals] = useState<SiteRental[]>([]);
   const [siteRepairs, setSiteRepairs] = useState<SiteRepair[]>([]);
+  
+  const inactivityTimer = useRef<number | null>(null);
+  const initialLoad = useRef({ contacts: true, rentals: true, repairs: true });
+
+  const addToast = useCallback((title: string, message: string, type: 'success' | 'info' | 'error' = 'info') => {
+    const id = toastId.current++;
+    setToasts(prevToasts => [...prevToasts, { id, title, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  }, []);
+
+  const handleAction = useCallback(async <T,>(action: () => Promise<T> | T): Promise<T | void> => {
+    setIsActionLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const result = await action();
+      return result;
+    } catch (error) {
+      console.error("An error occurred during the action:", error);
+      addToast('Error', 'An error occurred. Please try again.', 'error');
+    } finally {
+      setIsActionLoading(false);
+    }
+  }, [addToast]);
+
+  const handleLogout = useCallback(() => handleAction(async () => {
+    await auth.signOut();
+  }), [handleAction]);
+
+  const logoutDueToInactivity = useCallback(() => {
+    handleLogout();
+    setTimeout(() => addToast('Session Expired', 'You have been logged out due to inactivity.', 'info'), 100);
+  }, [handleLogout, addToast]);
+  
+  // Effect for inactivity timer
+  useEffect(() => {
+    if (currentUser) {
+        const resetTimer = () => {
+            if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+            inactivityTimer.current = window.setTimeout(logoutDueToInactivity, 5 * 60 * 1000); // 5 minutes
+        };
+
+        const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+        
+        resetTimer(); // Initial timer
+        events.forEach(event => window.addEventListener(event, resetTimer));
+        
+        return () => {
+            if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+            events.forEach(event => window.removeEventListener(event, resetTimer));
+        };
+    }
+  }, [currentUser, logoutDueToInactivity]);
 
   useEffect(() => {
     // Listener for settings, runs immediately and for all users (even logged out)
@@ -116,7 +172,8 @@ const App: React.FC = () => {
 
             if (userDocSnap.exists()) {
                 setLoginError('');
-                const userData = { id: userDocSnap.id, ...userDocSnap.data() } as User;
+                const plainUserData = JSON.parse(JSON.stringify(userDocSnap.data()));
+                const userData = { id: userDocSnap.id, ...plainUserData } as User;
                 setCurrentUser(userData);
 
                 // Set up real-time listeners for all data collections
@@ -141,7 +198,10 @@ const App: React.FC = () => {
                 Object.entries(collectionsToSubscribe).forEach(([collectionName, config]) => {
                     const q = query(collection(firestoreDb, collectionName), orderBy(config.orderByField, config.orderDirection || 'asc'));
                     const unsub = onSnapshot(q, (snapshot) => {
-                        const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+                        const data = snapshot.docs.map((d) => {
+                            const plainData = JSON.parse(JSON.stringify(d.data()));
+                            return { id: d.id, ...plainData };
+                        });
                         config.setter(data as any);
                     });
                     newUnsubscribers.push(unsub);
@@ -158,6 +218,7 @@ const App: React.FC = () => {
             }
         } else {
             setCurrentUser(null);
+            initialLoad.current = { contacts: true, rentals: true, repairs: true };
             [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs].forEach(setter => setter([]));
         }
         setAuthChecked(true);
@@ -185,20 +246,44 @@ const App: React.FC = () => {
   const initializeSiteMonitoringListeners = (currentUnsubscribers: (()=>void)[]) => {
       const contactsQuery = query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc'));
       currentUnsubscribers.push(onSnapshot(contactsQuery, (snapshot) => {
-          const contactsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'contact' })) as SiteContact[];
-          setSiteContacts(contactsData);
+          snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added' && !initialLoad.current.contacts) {
+                  const newContact = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'contact' } as SiteContact;
+                  addToast('New Site Submission', `Contact form from ${newContact.name}`, 'info');
+              }
+          });
+          initialLoad.current.contacts = false;
+          
+          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'contact'})) as SiteContact[];
+          setSiteContacts(fullData);
       }));
 
       const rentalsQuery = query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc'));
       currentUnsubscribers.push(onSnapshot(rentalsQuery, (snapshot) => {
-          const rentalsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'rental' })) as SiteRental[];
-          setSiteRentals(rentalsData);
+          snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added' && !initialLoad.current.rentals) {
+                  const newRental = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'rental' } as SiteRental;
+                  addToast('New Site Submission', `Rental agreement from ${newRental.renter_name}`, 'info');
+              }
+          });
+          initialLoad.current.rentals = false;
+
+          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'rental'})) as SiteRental[];
+          setSiteRentals(fullData);
       }));
 
       const repairsQuery = query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc'));
       currentUnsubscribers.push(onSnapshot(repairsQuery, (snapshot) => {
-          const repairsData = snapshot.docs.map((d) => ({ id: d.id, ...d.data(), type: 'repair' })) as SiteRepair[];
-          setSiteRepairs(repairsData);
+          snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added' && !initialLoad.current.repairs) {
+                  const newRepair = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'repair' } as SiteRepair;
+                  addToast('New Site Submission', `Repair request from ${newRepair.customerName}`, 'info');
+              }
+          });
+          initialLoad.current.repairs = false;
+          
+          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'repair'})) as SiteRepair[];
+          setSiteRepairs(fullData);
       }));
   };
 
@@ -211,10 +296,10 @@ const App: React.FC = () => {
 
     const docRef = doc(firestoreDb, collectionName, id);
     updateDoc(docRef, { status: newStatus })
-        .then(() => showNotification(`Status updated to ${newStatus}.`))
+        .then(() => addToast('Success', `Status updated to ${newStatus}.`, 'success'))
         .catch((error: any) => {
             console.error("Error updating status: ", error);
-            showNotification("Failed to update status.");
+            addToast('Error', "Failed to update status.", 'error');
         });
   };
 
@@ -228,32 +313,14 @@ const App: React.FC = () => {
     handleAction(async () => {
         try {
             await deleteDoc(doc(firestoreDb, collectionName, id));
-            showNotification(`Submission deleted successfully.`);
+            addToast('Success', `Submission deleted successfully.`, 'success');
         } catch (error) {
             console.error("Error deleting submission: ", error);
-            showNotification("Failed to delete submission.");
+            addToast('Error', "Failed to delete submission.", 'error');
         }
     });
   };
   
-  const showNotification = (message: string) => {
-    setNotification(message);
-  };
-
-  const handleAction = async <T,>(action: () => Promise<T> | T): Promise<T | void> => {
-    setIsActionLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const result = await action();
-      return result;
-    } catch (error) {
-      console.error("An error occurred during the action:", error);
-      showNotification('An error occurred. Please try again.');
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   const handleViewChange = (view: AppView) => {
     if (view === currentView) {
         if (window.innerWidth < 768) setIsSidebarOpen(false);
@@ -266,35 +333,43 @@ const App: React.FC = () => {
         setIsSidebarOpen(false);
     }
   };
-
-  const handleLogout = () => handleAction(async () => {
-    // FIX: Using compat namespaced API `auth.signOut()` instead of modular `signOut(auth)`.
-    await auth.signOut();
-  });
   
   const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
   const handleDeleteUser = (userId: string) => handleAction(() => db.deleteUser(userId));
   const handleUpdateLogo = (logo: string | null) => handleAction(async () => { await db.saveAppLogo(logo); setAppLogo(logo); });
   const handleUpdateSplashLogo = (logo: string | null) => handleAction(async () => { await db.saveSplashLogo(logo); setSplashLogo(logo); });
 
-  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(() => db.createContact(newContact));
+  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(async () => {
+    await db.createContact(newContact);
+    addToast('New Manual Submission', `Client "${newContact.fullName}" created.`, 'info');
+  });
   const handleUpdateContact = (updatedContact: Contact) => handleAction(() => db.updateContact(updatedContact));
   const handleDeleteContact = (contactId: string) => handleAction(() => db.deleteContact(contactId));
 
-  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(() => db.createRental(newRental));
+  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(async () => {
+    await db.createRental(newRental);
+    addToast('New Manual Submission', 'New rental agreement created.', 'info');
+  });
   const handleUpdateRental = (updatedRental: Rental) => handleAction(() => db.updateRental(updatedRental));
   const handleDeleteRental = (rentalId: string) => handleAction(() => db.deleteRental(rentalId));
 
-  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(() => db.createRepair(newRepair));
+  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(async () => {
+    await db.createRepair(newRepair);
+    addToast('New Manual Submission', 'New repair request created.', 'info');
+  });
   const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => db.updateRepair(updatedRepair));
   const handleDeleteRepair = (repairId: string) => handleAction(() => db.deleteRepair(repairId));
 
-  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(() => db.createInventory(newItem));
+  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(async () => {
+    await db.createInventory(newItem);
+    addToast('New Manual Submission', `Inventory item "${newItem.makeModel}" added.`, 'info');
+  });
   const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => db.updateInventory(updatedItem));
   const handleDeleteInventory = (itemId: string) => handleAction(() => db.deleteInventory(itemId));
 
   const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(async () => {
     await db.createSale(newSale);
+    addToast('New Manual Submission', `Sale to "${newSale.buyerName}" recorded.`, 'info');
     const soldItem = inventory.find(i => i.id === newSale.itemId);
     if(soldItem) {
         await handleUpdateInventory({ ...soldItem, status: 'Sold' });
@@ -322,7 +397,10 @@ const App: React.FC = () => {
     }
   });
 
-  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(() => db.createVendor(newVendor));
+  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(async () => {
+    await db.createVendor(newVendor);
+    addToast('New Manual Submission', `Vendor "${newVendor.vendorName}" added.`, 'info');
+  });
   const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => db.updateVendor(updatedVendor));
   const handleDeleteVendor = (vendorId: string) => handleAction(() => db.deleteVendor(vendorId));
 
@@ -339,7 +417,7 @@ const App: React.FC = () => {
   const handleUpdateAdminKey = (key: string) => handleAction(async () => {
     await db.saveAdminKey(key);
     setAdminKey(key);
-    showNotification('Admin Registration Key updated successfully!');
+    addToast('Success', 'Admin Registration Key updated successfully!', 'success');
   });
   
   if (appLoading) {
@@ -347,7 +425,7 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login adminKey={adminKey} splashLogo={splashLogo} showNotification={showNotification} initialError={loginError} />;
+    return <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} />;
   }
 
   const isAdmin = currentUser.role === 'Admin';
@@ -381,15 +459,15 @@ const App: React.FC = () => {
       case AppView.Dashboard:
         return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
       case AppView.Inventory:
-        return <Inventory inventory={inventory} vendors={vendors} currentUser={currentUser} onCreateItem={handleCreateInventory} onUpdateItem={handleUpdateInventory} onDeleteItem={handleDeleteInventory} showNotification={showNotification} adminKey={adminKey} />;
+        return <Inventory inventory={inventory} vendors={vendors} currentUser={currentUser} onCreateItem={handleCreateInventory} onUpdateItem={handleUpdateInventory} onDeleteItem={handleDeleteInventory} addToast={addToast} adminKey={adminKey} />;
       case AppView.SalesLog:
-        return <SalesLog sales={sales} inventory={inventory} currentUser={currentUser} onCreateSale={handleCreateSale} onUpdateSale={handleUpdateSale} onDeleteSale={handleDeleteSale} showNotification={showNotification} adminKey={adminKey} />;
+        return <SalesLog sales={sales} inventory={inventory} currentUser={currentUser} onCreateSale={handleCreateSale} onUpdateSale={handleUpdateSale} onDeleteSale={handleDeleteSale} addToast={addToast} adminKey={adminKey} />;
       case AppView.Vendors:
-        return <Vendors vendors={vendors} inventory={inventory} currentUser={currentUser} onCreateVendor={handleCreateVendor} onUpdateVendor={handleUpdateVendor} onDeleteVendor={handleDeleteVendor} showNotification={showNotification} adminKey={adminKey} />;
+        return <Vendors vendors={vendors} inventory={inventory} currentUser={currentUser} onCreateVendor={handleCreateVendor} onUpdateVendor={handleUpdateVendor} onDeleteVendor={handleDeleteVendor} addToast={addToast} adminKey={adminKey} />;
       case AppView.Users:
-        return <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} showNotification={showNotification} adminKey={adminKey} />;
+        return <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} addToast={addToast} adminKey={adminKey} />;
       case AppView.Contacts:
-        return <Contacts contacts={contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} showNotification={showNotification} adminKey={adminKey} />;
+        return <Contacts contacts={contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} addToast={addToast} adminKey={adminKey} />;
       case AppView.Settings:
         return <Settings 
                     onUpdateLogo={handleUpdateLogo} 
@@ -400,16 +478,16 @@ const App: React.FC = () => {
                     onUpdateAdminKey={handleUpdateAdminKey}
                     currentSplashLogo={splashLogo}
                     onUpdateSplashLogo={handleUpdateSplashLogo}
-                    showNotification={showNotification}
+                    addToast={addToast}
                     notificationSettings={notificationSettings}
                     onUpdateNotificationSettings={handleUpdateNotificationSettings}
                 />;
       case AppView.Rentals:
-        return <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} showNotification={showNotification} adminKey={adminKey} />;
+        return <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} addToast={addToast} adminKey={adminKey} />;
       case AppView.Repairs:
-        return <Repairs repairs={repairs} contacts={contacts} currentUser={currentUser} onCreateRepair={handleCreateRepair} onUpdateRepair={handleUpdateRepair} onDeleteRepair={handleDeleteRepair} showNotification={showNotification} adminKey={adminKey} />;
+        return <Repairs repairs={repairs} contacts={contacts} currentUser={currentUser} onCreateRepair={handleCreateRepair} onUpdateRepair={handleUpdateRepair} onDeleteRepair={handleDeleteRepair} addToast={addToast} adminKey={adminKey} />;
       case AppView.Notifications:
-        return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} showNotification={showNotification} notificationSettings={notificationSettings} />;
+        return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} addToast={addToast} notificationSettings={notificationSettings} />;
       case AppView.Reports:
         return <Reports 
                     contacts={contacts} 
@@ -428,7 +506,7 @@ const App: React.FC = () => {
                     onUpdateStatus={handleUpdateFirebaseStatus} 
                     onDeleteSubmission={handleDeleteFirebaseSubmission}
                     adminKey={adminKey}
-                    showNotification={showNotification}
+                    addToast={addToast}
                 />;
       case AppView.HtmlViewer:
         return <HtmlViewer />;
@@ -439,7 +517,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-        {notification && <Notification message={notification} onClose={() => setNotification('')} />}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
         {isActionLoading && <Spinner />}
     
         <div className={`fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>

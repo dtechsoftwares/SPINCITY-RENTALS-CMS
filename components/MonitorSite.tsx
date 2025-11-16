@@ -34,10 +34,10 @@ interface MonitorSiteProps {
     onUpdateStatus: (id: string, type: 'contact' | 'rental' | 'repair', newStatus: 'new' | 'pending' | 'completed') => void;
     onDeleteSubmission: (id: string, type: 'contact' | 'rental' | 'repair') => void;
     adminKey: string;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
 }
 
-const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, siteRepairs, onUpdateStatus, onDeleteSubmission, adminKey, showNotification }) => {
+const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, siteRepairs, onUpdateStatus, onDeleteSubmission, adminKey, addToast }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -241,7 +241,7 @@ const MonitorSite: React.FC<MonitorSiteProps> = ({ siteContacts, siteRentals, si
                 title="Delete Submission"
                 message="Are you sure you want to permanently delete this submission from the site database? This action cannot be undone."
                 adminKey={adminKey}
-                showNotification={showNotification}
+                addToast={addToast}
             />
         </div>
     );

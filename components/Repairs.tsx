@@ -153,11 +153,11 @@ interface RepairsProps {
     onCreateRepair: (repair: Omit<Repair, 'id'>) => void;
     onUpdateRepair: (repair: Repair) => void;
     onDeleteRepair: (repairId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCreateRepair, onUpdateRepair, onDeleteRepair, showNotification, adminKey }) => {
+const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCreateRepair, onUpdateRepair, onDeleteRepair, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRepair, setEditingRepair] = useState<Repair | null>(null);
     const [viewingRepair, setViewingRepair] = useState<Repair | null>(null);
@@ -172,7 +172,7 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
     const handleOpenModal = (repair: Repair | null) => {
         setEditingRepair(repair);
         const initialContactId = repair?.contactId || contacts[0]?.id || '';
-        let initialFormData = repair ? repair : { ...emptyRepairForm, contactId: initialContactId };
+        let initialFormData = repair ? { ...repair, imageUrls: repair.imageUrls || [] } : { ...emptyRepairForm, contactId: initialContactId };
 
         if (!repair && initialContactId) {
             const contact = contactMap.get(initialContactId);
@@ -261,7 +261,7 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
 
     const handleSubmit = () => {
         if (!formData.contactId || !formData.issueDescription || !formData.serviceAddress) {
-            alert('Please select a contact, provide a service address, and describe the issue.');
+            addToast('Error', 'Please select a contact, provide a service address, and describe the issue.', 'error');
             return;
         }
 
@@ -271,10 +271,9 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
 
         if (editingRepair) {
             onUpdateRepair({ ...editingRepair, ...submissionData });
-            showNotification('Repair request updated successfully.');
+            addToast('Success', 'Repair request updated successfully.', 'success');
         } else {
             onCreateRepair(submissionData);
-            showNotification('Repair request created successfully.');
         }
         handleCloseModal();
     };
@@ -287,7 +286,7 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
     const handleDeleteConfirm = () => {
         if (repairToDelete) {
             onDeleteRepair(repairToDelete);
-            showNotification('Repair request deleted successfully.');
+            addToast('Success', 'Repair request deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setRepairToDelete(null);
@@ -437,7 +436,7 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
                 title="Delete Repair Request"
                 message="Are you sure you want to permanently delete this repair request?"
                 adminKey={adminKey}
-                showNotification={showNotification}
+                addToast={addToast}
             />
         </div>
     );

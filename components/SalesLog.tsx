@@ -65,11 +65,11 @@ interface SalesLogProps {
     onCreateSale: (sale: Omit<Sale, 'id'>) => void;
     onUpdateSale: (sale: Sale) => void;
     onDeleteSale: (saleId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCreateSale, onUpdateSale, onDeleteSale, showNotification, adminKey }) => {
+const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCreateSale, onUpdateSale, onDeleteSale, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState<Sale | null>(null);
     const [formData, setFormData] = useState<Omit<Sale, 'id'>>(emptySaleForm);
@@ -114,16 +114,15 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
 
     const handleSubmit = () => {
         if (!formData.saleId || !formData.itemId || !formData.buyerName) {
-            alert('Sale ID, Item, and Buyer Name are required.');
+            addToast('Error', 'Sale ID, Item, and Buyer Name are required.', 'error');
             return;
         }
 
         if (editingSale) {
             onUpdateSale({ ...editingSale, ...formData });
-            showNotification('Sale record updated successfully.');
+            addToast('Success', 'Sale record updated successfully.', 'success');
         } else {
             onCreateSale(formData);
-            showNotification('Sale recorded successfully.');
         }
         handleCloseModal();
     };
@@ -136,7 +135,7 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
     const handleDeleteConfirm = () => {
         if (saleToDelete) {
             onDeleteSale(saleToDelete);
-            showNotification('Sale record deleted successfully.');
+            addToast('Success', 'Sale record deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setSaleToDelete(null);
@@ -225,7 +224,7 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
                 title="Delete Sale Record"
                 message="Are you sure you want to permanently delete this sale record? This action will also update the inventory item's status back to 'Available'."
                 adminKey={adminKey}
-                showNotification={showNotification}
+                addToast={addToast}
             />
         </div>
     );

@@ -53,11 +53,11 @@ const PasswordToggleIcon = ({ show, onToggle }: { show: boolean, onToggle: () =>
 interface LoginProps {
   adminKey: string;
   splashLogo: string | null;
-  showNotification: (message: string) => void;
+  addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
   initialError?: string;
 }
 
-const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification, initialError }) => {
+const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialError }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -141,7 +141,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification, i
                 avatar: `https://i.pravatar.cc/80?u=${authUser.uid}`
             };
             await db.createUserProfile(authUser.uid, newUserForFirestore);
-            showNotification('Registration successful! Welcome.');
+            addToast('Welcome!', 'Registration successful!', 'success');
             setIsRegisterModalOpen(false);
             // onAuthStateChanged will handle login
         } else {
@@ -162,11 +162,12 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification, i
     try {
         // FIX: Using compat namespaced API `auth.sendPasswordResetEmail` instead of modular `sendPasswordResetEmail(auth, ...)`.
         await auth.sendPasswordResetEmail(resetEmail);
-        setResetMessage('Success! If an account with that email exists, a password reset link has been sent.');
+        addToast('Email Sent', 'If an account exists, a password reset link has been sent.', 'success');
         setResetEmail('');
+        setIsForgotPasswordModalOpen(false);
     } catch (err: any) {
         console.error(err);
-        setResetMessage('Error: Could not send reset email. Please try again.');
+        addToast('Error', 'Could not send reset email. Please try again.', 'error');
     } finally {
         setIsSendingReset(false);
     }
@@ -297,7 +298,6 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, showNotification, i
         <p className="text-gray-600 mb-4">
             Enter the email address associated with your account, and we'll send you a link to reset your password.
         </p>
-        {resetMessage && <p className={`p-3 rounded-lg mb-4 text-sm ${resetMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{resetMessage}</p>}
         <form onSubmit={handlePasswordReset} className="space-y-4">
             <Input 
                 label="Email Address" 

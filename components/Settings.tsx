@@ -58,7 +58,7 @@ interface SettingsProps {
     onUpdateAdminKey: (key: string) => void;
     currentSplashLogo: string | null;
     onUpdateSplashLogo: (logo: string | null) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     notificationSettings: NotificationSettings;
     onUpdateNotificationSettings: (settings: NotificationSettings) => void;
 }
@@ -72,7 +72,7 @@ const Settings: React.FC<SettingsProps> = ({
     onUpdateAdminKey,
     currentSplashLogo,
     onUpdateSplashLogo,
-    showNotification,
+    addToast,
     notificationSettings,
     onUpdateNotificationSettings
 }) => {
@@ -103,7 +103,7 @@ const Settings: React.FC<SettingsProps> = ({
     const handleSaveLogo = () => {
         if (logoPreview) {
             onUpdateLogo(logoPreview);
-            showNotification('Application Logo has been saved successfully.');
+            addToast('Success', 'Application Logo has been saved successfully.', 'success');
         }
     };
 
@@ -111,7 +111,7 @@ const Settings: React.FC<SettingsProps> = ({
         setLogoPreview(null);
         setLogoFile(null);
         onUpdateLogo(null);
-        showNotification('Logo has been reset to default.');
+        addToast('Success', 'Logo has been reset to default.', 'success');
     };
 
     const handleSplashLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,14 +126,14 @@ const Settings: React.FC<SettingsProps> = ({
 
     const handleSaveSplashLogo = () => {
         onUpdateSplashLogo(splashLogoPreview);
-        showNotification('Splash screen logo updated successfully!');
+        addToast('Success', 'Splash screen logo updated successfully!', 'success');
     };
 
     const handleResetSplashLogo = () => {
         setSplashLogoPreview(null);
         setSplashLogoFile(null);
         onUpdateSplashLogo(null);
-        showNotification('Splash screen logo has been reset to default.');
+        addToast('Success', 'Splash screen logo has been reset to default.', 'success');
     };
 
     const handleSmsSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -143,12 +143,12 @@ const Settings: React.FC<SettingsProps> = ({
     
     const handleSaveSmsSettings = () => {
         onUpdateSmsSettings(localSmsSettings);
-        showNotification('SMS settings saved successfully!');
+        addToast('Success', 'SMS settings saved successfully!', 'success');
     };
     
     const handleSaveAdminKey = () => {
         if (localAdminKey.length < 4) {
-            alert('Admin key must be at least 4 characters long.');
+            addToast('Error', 'Admin key must be at least 4 characters long.', 'error');
             return;
         }
         onUpdateAdminKey(localAdminKey);
@@ -163,7 +163,7 @@ const Settings: React.FC<SettingsProps> = ({
         
         const notificationType = type === 'sms' ? 'SMS' : 'Email';
         const status = enabled ? 'turned on' : 'turned off';
-        showNotification(`${notificationType} notifications have been ${status}.`);
+        addToast('Settings Updated', `${notificationType} notifications have been ${status}.`, 'info');
     };
 
 

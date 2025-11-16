@@ -64,11 +64,11 @@ interface InventoryProps {
     onCreateItem: (item: Omit<InventoryItem, 'id'>) => void;
     onUpdateItem: (item: InventoryItem) => void;
     onDeleteItem: (itemId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, onCreateItem, onUpdateItem, onDeleteItem, showNotification, adminKey }) => {
+const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, onCreateItem, onUpdateItem, onDeleteItem, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [formData, setFormData] = useState<Omit<InventoryItem, 'id'>>(emptyItemForm);
@@ -105,16 +105,15 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, 
 
     const handleSubmit = () => {
         if (!formData.makeModel || !formData.serialNumber) {
-            alert('Make/Model and Serial Number are required.');
+            addToast('Error', 'Make/Model and Serial Number are required.', 'error');
             return;
         }
 
         if (editingItem) {
             onUpdateItem({ ...editingItem, ...formData });
-            showNotification('Inventory item updated successfully.');
+            addToast('Success', 'Inventory item updated successfully.', 'success');
         } else {
             onCreateItem(formData);
-            showNotification('Inventory item created successfully.');
         }
         handleCloseModal();
     };
@@ -127,7 +126,7 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, 
     const handleDeleteConfirm = () => {
         if (itemToDelete) {
             onDeleteItem(itemToDelete);
-            showNotification('Inventory item deleted successfully.');
+            addToast('Success', 'Inventory item deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setItemToDelete(null);
@@ -223,7 +222,7 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, vendors, currentUser, 
                 title="Delete Inventory Item"
                 message="Are you sure you want to permanently delete this inventory item?"
                 adminKey={adminKey}
-                showNotification={showNotification}
+                addToast={addToast}
             />
         </div>
     );

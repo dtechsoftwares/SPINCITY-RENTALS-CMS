@@ -8,10 +8,10 @@ interface AdminKeyConfirmationModalProps {
   title: string;
   message: string;
   adminKey: string;
-  showNotification: (message: string) => void;
+  addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
 }
 
-const AdminKeyConfirmationModal: React.FC<AdminKeyConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, adminKey, showNotification }) => {
+const AdminKeyConfirmationModal: React.FC<AdminKeyConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, adminKey, addToast }) => {
   const [enteredKey, setEnteredKey] = useState('');
   const [isVerified, setIsVerified] = useState(false);
 
@@ -28,9 +28,9 @@ const AdminKeyConfirmationModal: React.FC<AdminKeyConfirmationModalProps> = ({ i
   const handleVerify = () => {
     if (enteredKey === adminKey) {
       setIsVerified(true);
-      showNotification('Admin key verified successfully.');
+      addToast('Verified', 'Admin key verified successfully.', 'success');
     } else {
-      showNotification('Incorrect Admin Key.');
+      addToast('Error', 'Incorrect Admin Key.', 'error');
       setEnteredKey('');
     }
   };

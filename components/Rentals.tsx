@@ -94,11 +94,11 @@ interface RentalsProps {
     onCreateRental: (rental: Omit<Rental, 'id'>) => void;
     onUpdateRental: (rental: Rental) => void;
     onDeleteRental: (rentalId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCreateRental, onUpdateRental, onDeleteRental, showNotification, adminKey }) => {
+const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCreateRental, onUpdateRental, onDeleteRental, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRental, setEditingRental] = useState<Rental | null>(null);
     const [formData, setFormData] = useState<Omit<Rental, 'id'>>(emptyRentalForm);
@@ -151,12 +151,12 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
 
     const handleSubmit = () => {
         if (!formData.contactId || !formData.emergencyContactFullName || !formData.renterPrintedName || !formData.digitalSignature) {
-            alert('Please fill all required fields in each section.');
+            addToast('Error', 'Please fill all required fields in each section.', 'error');
             return;
         }
 
         if (!formData.ackPaymentTerms || !formData.ackRelocationTerms || !formData.ackAdditionalTerms) {
-            alert('Please acknowledge all agreement terms before saving.');
+            addToast('Error', 'Please acknowledge all agreement terms before saving.', 'error');
             return;
         }
 
@@ -167,10 +167,9 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
 
         if (editingRental) {
             onUpdateRental({ ...editingRental, ...submissionData });
-            showNotification('Rental agreement updated successfully.');
+            addToast('Success', 'Rental agreement updated successfully.', 'success');
         } else {
             onCreateRental(submissionData);
-            showNotification('Rental agreement created successfully.');
         }
         handleCloseModal();
     };
@@ -183,7 +182,7 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
     const handleDeleteConfirm = () => {
         if (rentalToDelete) {
             onDeleteRental(rentalToDelete);
-            showNotification('Rental agreement deleted successfully.');
+            addToast('Success', 'Rental agreement deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setRentalToDelete(null);
@@ -336,7 +335,7 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
             title="Delete Rental Agreement"
             message="Are you sure you want to permanently delete this rental agreement?"
             adminKey={adminKey}
-            showNotification={showNotification}
+            addToast={addToast}
         />
     </div>
   );

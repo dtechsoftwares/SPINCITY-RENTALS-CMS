@@ -6,10 +6,10 @@ interface NotificationsProps {
     smsSettings: SmsSettings;
     notificationSettings: NotificationSettings;
     handleAction: (action: () => void) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
 }
 
-const Notifications: React.FC<NotificationsProps> = ({ contacts, smsSettings, notificationSettings, handleAction, showNotification }) => {
+const Notifications: React.FC<NotificationsProps> = ({ contacts, smsSettings, notificationSettings, handleAction, addToast }) => {
   const isSmsConfigured = smsSettings.accountSid && smsSettings.authToken && smsSettings.twilioPhoneNumber;
   const isSmsEnabled = notificationSettings.smsEnabled;
 

@@ -53,11 +53,11 @@ interface VendorsProps {
     onCreateVendor: (vendor: Omit<Vendor, 'id'>) => void;
     onUpdateVendor: (vendor: Vendor) => void;
     onDeleteVendor: (vendorId: string) => void;
-    showNotification: (message: string) => void;
+    addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
     adminKey: string;
 }
 
-const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCreateVendor, onUpdateVendor, onDeleteVendor, showNotification, adminKey }) => {
+const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCreateVendor, onUpdateVendor, onDeleteVendor, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState<Omit<Vendor, 'id'>>(emptyVendorForm);
@@ -103,16 +103,15 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
 
     const handleSubmit = () => {
         if (!formData.vendorName || !formData.contactPerson) {
-            alert('Vendor Name and Contact Person are required.');
+            addToast('Error', 'Vendor Name and Contact Person are required.', 'error');
             return;
         }
 
         if (editingVendor) {
             onUpdateVendor({ ...editingVendor, ...formData });
-            showNotification('Vendor updated successfully.');
+            addToast('Success', 'Vendor updated successfully.', 'success');
         } else {
             onCreateVendor(formData);
-            showNotification('Vendor created successfully.');
         }
         handleCloseModal();
     };
@@ -125,7 +124,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
     const handleDeleteConfirm = () => {
         if (vendorToDelete) {
             onDeleteVendor(vendorToDelete);
-            showNotification('Vendor deleted successfully.');
+            addToast('Success', 'Vendor deleted successfully.', 'success');
         }
         setIsConfirmModalOpen(false);
         setVendorToDelete(null);
@@ -196,7 +195,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
                 title="Delete Vendor"
                 message="Are you sure you want to permanently delete this vendor?"
                 adminKey={adminKey}
-                showNotification={showNotification}
+                addToast={addToast}
             />
         </div>
     );
