@@ -173,8 +173,7 @@ const App: React.FC = () => {
 
             if (userDocSnap.exists()) {
                 setLoginError('');
-                const plainUserData = JSON.parse(JSON.stringify(userDocSnap.data()));
-                const userData = { id: userDocSnap.id, ...plainUserData } as User;
+                const userData = { id: userDocSnap.id, ...userDocSnap.data() } as User;
                 setCurrentUser(userData);
 
                 // Set up real-time listeners for all data collections
@@ -199,9 +198,11 @@ const App: React.FC = () => {
                 Object.entries(collectionsToSubscribe).forEach(([collectionName, config]) => {
                     const q = query(collection(firestoreDb, collectionName), orderBy(config.orderByField, config.orderDirection || 'asc'));
                     const unsub = onSnapshot(q, (snapshot) => {
-                        const data = snapshot.docs.map((d) => {
-                            const plainData = JSON.parse(JSON.stringify(d.data()));
-                            return { id: d.id, ...plainData };
+                        // Explicitly map document data to plain objects to avoid circular references
+                        // from Firestore DocumentSnapshot objects.
+                        const data = snapshot.docs.map((doc) => {
+                            const plainData = doc.data();
+                            return { id: doc.id, ...plainData };
                         });
                         config.setter(data as any);
                     });
@@ -252,13 +253,13 @@ const App: React.FC = () => {
               const docId = change.doc.id;
               if (change.type === 'added' && !initialLoad.current.contacts && !processedDocIds.current.has(docId)) {
                   processedDocIds.current.add(docId);
-                  const newContact = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'contact' } as SiteContact;
+                  const newContact = { id: change.doc.id, ...change.doc.data(), type: 'contact' } as SiteContact;
                   addToast('New Site Submission', `Contact form from ${newContact.name}`, 'success');
               }
           });
           initialLoad.current.contacts = false;
           
-          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'contact'})) as SiteContact[];
+          const fullData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'contact' })) as SiteContact[];
           setSiteContacts(fullData);
       }));
 
@@ -268,13 +269,13 @@ const App: React.FC = () => {
               const docId = change.doc.id;
               if (change.type === 'added' && !initialLoad.current.rentals && !processedDocIds.current.has(docId)) {
                   processedDocIds.current.add(docId);
-                  const newRental = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'rental' } as SiteRental;
+                  const newRental = { id: change.doc.id, ...change.doc.data(), type: 'rental' } as SiteRental;
                   addToast('New Site Submission', `Rental agreement from ${newRental.renter_name}`, 'success');
               }
           });
           initialLoad.current.rentals = false;
 
-          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'rental'})) as SiteRental[];
+          const fullData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'rental' })) as SiteRental[];
           setSiteRentals(fullData);
       }));
 
@@ -284,13 +285,13 @@ const App: React.FC = () => {
               const docId = change.doc.id;
               if (change.type === 'added' && !initialLoad.current.repairs && !processedDocIds.current.has(docId)) {
                   processedDocIds.current.add(docId);
-                  const newRepair = { id: change.doc.id, ...JSON.parse(JSON.stringify(change.doc.data())), type: 'repair' } as SiteRepair;
+                  const newRepair = { id: change.doc.id, ...change.doc.data(), type: 'repair' } as SiteRepair;
                   addToast('New Site Submission', `Repair request from ${newRepair.customerName}`, 'success');
               }
           });
           initialLoad.current.repairs = false;
           
-          const fullData = snapshot.docs.map(d => ({id: d.id, ...JSON.parse(JSON.stringify(d.data())), type: 'repair'})) as SiteRepair[];
+          const fullData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'repair' })) as SiteRepair[];
           setSiteRepairs(fullData);
       }));
   };
