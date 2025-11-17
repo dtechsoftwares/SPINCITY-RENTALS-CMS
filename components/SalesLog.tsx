@@ -21,6 +21,69 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
   );
 };
 
+const SaleDetailsModal = ({ sale, onClose, item }: { sale: Sale | null; onClose: () => void; item: InventoryItem | undefined; }) => {
+    if (!sale) return null;
+
+    const DetailItem = ({ label, value }: { label: string; value?: string | React.ReactNode; }) => (
+        <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+            <div className="text-lg font-medium text-brand-text">{value || 'N/A'}</div>
+        </div>
+    );
+    
+    return (
+      <Modal isOpen={!!sale} onClose={onClose} title="Sale Details">
+        <div className="space-y-6 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4 border-b border-gray-200">
+                <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Item Sold</p>
+                    <h3 className="text-2xl font-bold text-brand-text">{item ? `${item.itemType} - ${item.makeModel}`: 'Unknown Item'}</h3>
+                    <p className="text-gray-500">SN: {item?.serialNumber || 'N/A'}</p>
+                </div>
+                <div className="text-left md:text-right">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Sale Price</p>
+                    <p className="text-3xl font-bold text-brand-green">${sale.salePrice.toFixed(2)}</p>
+                </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-xl font-bold mb-4 text-brand-text">Buyer Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DetailItem label="Buyer Name" value={sale.buyerName} />
+                    <DetailItem label="Buyer Contact Phone" value={sale.buyerContact} />
+                    <DetailItem label="Buyer Email" value={sale.buyerEmail} />
+                    <DetailItem label="Buyer Address" value={sale.buyerAddress} />
+                </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-xl font-bold mb-4 text-brand-text">Sale Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DetailItem label="Sale ID" value={sale.saleId} />
+                    <DetailItem label="Sale Date" value={sale.saleDate} />
+                    <DetailItem label="Bill of Sale" value={
+                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
+                            View Document
+                        </a>
+                    } />
+                </div>
+                 {sale.notes && (
+                    <div className="mt-4">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</p>
+                        <p className="text-brand-text bg-white p-3 mt-1 rounded-lg border">{sale.notes}</p>
+                    </div>
+                 )}
+            </div>
+
+            <button onClick={onClose} className="w-full bg-brand-green text-white font-bold py-3 rounded-lg hover:bg-brand-green-dark transition-colors mt-4">
+                Close
+            </button>
+        </div>
+      </Modal>
+    );
+};
+
+
 const Input = ({ label, type = 'text', name, value, onChange, required=false, placeholder='' }: { label: string, type?: string, name: string, value: string | number, onChange: (e: React.ChangeEvent<any>) => void, required?: boolean, placeholder?: string }) => (
     <div>
         <label className="block text-sm font-medium text-gray-600 mb-2">{label}{required && <span className="text-red-500">*</span>}</label>
@@ -72,6 +135,7 @@ interface SalesLogProps {
 const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCreateSale, onUpdateSale, onDeleteSale, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState<Sale | null>(null);
+    const [viewingSale, setViewingSale] = useState<Sale | null>(null);
     const [formData, setFormData] = useState<Omit<Sale, 'id'>>(emptySaleForm);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
@@ -167,10 +231,8 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
                                     </div>
                                     <div className="flex items-center gap-4 self-end sm:self-center">
                                         <p className="font-semibold text-brand-text text-lg">${sale.salePrice.toFixed(2)}</p>
-                                        <a href={sale.billOfSaleLink} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
-                                            View Bill
-                                        </a>
                                         <div className="flex space-x-4 text-gray-500">
+                                            <button onClick={() => setViewingSale(sale)} className="hover:text-brand-green">View</button>
                                             <button onClick={() => handleOpenModal(sale)} className="hover:text-brand-green">Edit</button>
                                             {isAdmin && <button onClick={() => handleDeleteRequest(sale.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                         </div>
@@ -217,6 +279,12 @@ const SalesLog: React.FC<SalesLogProps> = ({ sales, inventory, currentUser, onCr
                 </div>
             </Modal>
             
+            <SaleDetailsModal 
+                sale={viewingSale} 
+                onClose={() => setViewingSale(null)}
+                item={viewingSale ? inventoryMap.get(viewingSale.itemId) : undefined}
+            />
+
             <AdminKeyConfirmationModal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setIsConfirmModalOpen(false)}

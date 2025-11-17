@@ -8,7 +8,7 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-      <div className="bg-white text-brand-text w-full max-w-md md:max-w-2xl rounded-xl shadow-2xl border border-gray-200">
+      <div className="bg-white text-brand-text w-full max-w-md md:max-w-3xl rounded-xl shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-brand-text">
@@ -20,6 +20,65 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
     </div>
   );
 };
+
+const VendorDetailsModal = ({ vendor, onClose, purchasedItems }: { vendor: Vendor | null; onClose: () => void; purchasedItems: InventoryItem[] }) => {
+    if (!vendor) return null;
+
+    const DetailItem = ({ label, value }: { label: string; value?: string | React.ReactNode; }) => (
+        <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+            <div className="text-lg font-medium text-brand-text">{value || 'N/A'}</div>
+        </div>
+    );
+    
+    return (
+      <Modal isOpen={!!vendor} onClose={onClose} title="Vendor Details">
+        <div className="space-y-6 p-4">
+            <div className="pb-4 border-b border-gray-200">
+                <h3 className="text-3xl font-bold text-brand-text">{vendor.vendorName}</h3>
+                <p className="text-gray-500 text-lg">Vendor ID: {vendor.vendorId}</p>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-xl font-bold mb-4 text-brand-text">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DetailItem label="Contact Person" value={vendor.contactPerson} />
+                    <DetailItem label="Phone" value={vendor.phone} />
+                    <DetailItem label="Email" value={vendor.email} />
+                    <DetailItem label="Address" value={vendor.address} />
+                    <DetailItem label="Website" value={
+                        vendor.website ? 
+                        <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-brand-green hover:underline">
+                            {vendor.website}
+                        </a> : 'N/A'
+                    } />
+                </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-xl font-bold mb-4 text-brand-text">Purchased Inventory ({purchasedItems.length})</h4>
+                {purchasedItems.length > 0 ? (
+                    <ul className="divide-y divide-gray-200 max-h-60 overflow-y-auto pr-2">
+                        {purchasedItems.map(item => (
+                            <li key={item.id} className="py-2">
+                                <p className="font-semibold">{item.makeModel} ({item.itemType})</p>
+                                <p className="text-sm text-gray-500">SN: {item.serialNumber} | Purchased: {item.purchaseDate}</p>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-center text-gray-500 py-4">No items have been purchased from this vendor yet.</p>
+                )}
+            </div>
+
+            <button onClick={onClose} className="w-full bg-brand-green text-white font-bold py-3 rounded-lg hover:bg-brand-green-dark transition-colors mt-4">
+                Close
+            </button>
+        </div>
+      </Modal>
+    );
+};
+
 
 const Input = ({ label, type = 'text', name, value, onChange, required=false, placeholder='' }: { label: string, type?: string, name: string, value: string, onChange: (e: React.ChangeEvent<any>) => void, required?: boolean, placeholder?: string }) => (
     <div>
@@ -60,6 +119,7 @@ interface VendorsProps {
 const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCreateVendor, onUpdateVendor, onDeleteVendor, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+    const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState<Omit<Vendor, 'id'>>(emptyVendorForm);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [vendorToDelete, setVendorToDelete] = useState<string | null>(null);
@@ -154,6 +214,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
                                 <div className="flex items-center gap-4 self-end sm:self-center">
                                     <span className="text-sm text-gray-600 font-medium">Items: {itemsPurchasedMap.get(vendor.vendorName) || 0}</span>
                                      <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => setViewingVendor(vendor)} className="hover:text-brand-green">View</button>
                                         <button onClick={() => handleOpenModal(vendor)} className="hover:text-brand-green">Edit</button>
                                         {isAdmin && <button onClick={() => handleDeleteRequest(vendor.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
@@ -188,6 +249,12 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, inventory, currentUser, onCr
                 </div>
             </Modal>
             
+            <VendorDetailsModal 
+                vendor={viewingVendor} 
+                onClose={() => setViewingVendor(null)}
+                purchasedItems={viewingVendor ? inventory.filter(item => item.vendor === viewingVendor.vendorName) : []}
+            />
+
             <AdminKeyConfirmationModal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setIsConfirmModalOpen(false)}

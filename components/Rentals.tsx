@@ -19,6 +19,96 @@ const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose:
   );
 };
 
+const RentalDetailsModal = ({ rental, onClose, contact }: { rental: Rental | null; onClose: () => void; contact: Contact | undefined; }) => {
+    if (!rental) return null;
+  
+    const DetailItem = ({ label, value }: { label: string; value?: string | React.ReactNode; }) => (
+        <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+            <div className="text-lg font-medium text-brand-text">{value || 'N/A'}</div>
+        </div>
+    );
+    
+    const Checkmark = ({ checked }: { checked: boolean }) => (
+        <span className={checked ? 'text-green-600' : 'text-red-500'}>
+            {checked ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+            ) : (
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+            )}
+            {checked ? 'Acknowledged' : 'Not Acknowledged'}
+        </span>
+    );
+
+    const getStatusColor = (status: RentalStatus) => {
+        switch (status) {
+            case 'Active': return 'bg-green-100 text-green-700';
+            case 'Pending Signature': return 'bg-yellow-100 text-yellow-700';
+            case 'Terminated': return 'bg-red-100 text-red-700';
+            default: return 'bg-gray-100 text-gray-700';
+        }
+    };
+    
+    return (
+      <Modal isOpen={!!rental} onClose={onClose} title="Rental Agreement Details">
+        <div className="space-y-6 p-4">
+          <div className="pb-4 border-b border-gray-200">
+            <h3 className="text-3xl font-bold text-brand-text">{contact?.fullName || 'Unknown Contact'}</h3>
+            <p className="text-gray-500 text-lg">{rental.rentalPropertyAddress}</p>
+          </div>
+          
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h4 className="text-xl font-bold mb-4 text-brand-text">Rental Details</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <DetailItem label="Status" value={<span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span>} />
+                <DetailItem label="Plan" value={rental.plan} />
+                <DetailItem label="Monthly Rate" value={`$${rental.monthlyRate.toFixed(2)}`} />
+                <DetailItem label="Start Date" value={rental.startDate} />
+                <DetailItem label="Maintenance" value={rental.maintenanceOption} />
+                <DetailItem label="Delivery Fee" value={rental.deliveryPaymentOption} />
+            </div>
+          </div>
+          
+          <div className="bg-gray-50 p-6 rounded-lg">
+             <h4 className="text-xl font-bold mb-4 text-brand-text">Emergency Contact</h4>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <DetailItem label="Full Name" value={rental.emergencyContactFullName} />
+                <DetailItem label="Relationship" value={rental.emergencyContactRelationship} />
+                <DetailItem label="Phone" value={rental.emergencyContactPhone} />
+                <DetailItem label="Email" value={rental.emergencyContactEmail} />
+                <DetailItem label="Address" value={rental.emergencyContactAddress} />
+             </div>
+          </div>
+          
+           <div className="bg-gray-50 p-6 rounded-lg">
+             <h4 className="text-xl font-bold mb-4 text-brand-text">Terms Acknowledged</h4>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <DetailItem label="Payment Terms" value={<Checkmark checked={rental.ackPaymentTerms} />} />
+                <DetailItem label="Relocation Terms" value={<Checkmark checked={rental.ackRelocationTerms} />} />
+                <DetailItem label="Additional Terms" value={<Checkmark checked={rental.ackAdditionalTerms} />} />
+             </div>
+          </div>
+          
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h4 className="text-xl font-bold mb-4 text-brand-text">Signature</h4>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <DetailItem label="Renter Printed Name" value={rental.renterPrintedName} />
+                 <DetailItem label="Digital Signature" value={<span className="font-mono text-blue-700">{rental.digitalSignature}</span>} />
+             </div>
+          </div>
+
+          <button onClick={onClose} className="w-full bg-brand-green text-white font-bold py-3 rounded-lg hover:bg-brand-green-dark transition-colors mt-4">
+            Close
+          </button>
+        </div>
+      </Modal>
+    );
+  };
+
 const Select = ({ label, name, value, onChange, children, required=false }: { label: string, name: string, value: string | number, onChange: (e: React.ChangeEvent<any>) => void, children?: React.ReactNode, required?: boolean }) => (
     <div>
       <label className="block text-sm font-medium text-gray-600 mb-2">{label}{required && <span className="text-red-500">*</span>}</label>
@@ -101,6 +191,7 @@ interface RentalsProps {
 const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCreateRental, onUpdateRental, onDeleteRental, addToast, adminKey }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRental, setEditingRental] = useState<Rental | null>(null);
+    const [viewingRental, setViewingRental] = useState<Rental | null>(null);
     const [formData, setFormData] = useState<Omit<Rental, 'id'>>(emptyRentalForm);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [rentalToDelete, setRentalToDelete] = useState<string | null>(null);
@@ -224,6 +315,7 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
                                      <p className="font-semibold text-brand-text text-lg">${rental.monthlyRate.toFixed(2)}<span className="text-sm font-normal text-gray-500">/mo</span></p>
                                     <span className={`px-3 py-1 text-sm rounded-full font-semibold ${getStatusColor(rental.status)}`}>{rental.status}</span>
                                     <div className="flex space-x-4 text-gray-500">
+                                        <button onClick={() => setViewingRental(rental)} className="hover:text-brand-green">View</button>
                                         <button onClick={() => handleOpenModal(rental)} className="hover:text-brand-green">Edit</button>
                                         {isAdmin && <button onClick={() => handleDeleteRequest(rental.id)} className="text-red-500 hover:text-red-400">Delete</button>}
                                     </div>
@@ -327,6 +419,12 @@ const Rentals: React.FC<RentalsProps> = ({ rentals, contacts, currentUser, onCre
                 </div>
             </div>
         </Modal>
+
+        <RentalDetailsModal 
+            rental={viewingRental} 
+            onClose={() => setViewingRental(null)} 
+            contact={viewingRental ? contactMap.get(viewingRental.contactId) : undefined} 
+        />
 
         <AdminKeyConfirmationModal
             isOpen={isConfirmModalOpen}
