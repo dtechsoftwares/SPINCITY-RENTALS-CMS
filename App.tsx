@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair, NotificationSettings } from './types';
+import { AppView, User, Contact, Rental, Repair, SmsSettings, InventoryItem, Sale, Vendor, SiteContact, SiteRental, SiteRepair, NotificationSettings, LogEntry } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Users from './components/Users';
@@ -16,12 +17,19 @@ import Notifications from './components/Notifications';
 import Reports from './components/Reports';
 import MonitorSite from './components/MonitorSite';
 import HtmlViewer from './components/HtmlViewer';
+import ActivityLogs from './components/ActivityLogs';
 import * as db from './utils/storage';
 import { auth, db as firestoreDb } from './utils/firebase';
-// FIX: Module '"firebase/auth"' has no exported member 'onAuthStateChanged' or 'signOut'. Removed modular imports.
 import { collection, doc, onSnapshot, query, orderBy, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Spinner from './components/Spinner';
 import ToastContainer, { ToastMessage } from './components/Toasts';
+
+// EmailJS Config
+const EMAILJS_CONFIG = {
+    PUBLIC_KEY: "Jil8e_qWbBah38tVF", // Updated Public Key
+    SERVICE_ID: "service_1eklhb5", // Service for CMS/Activity Logs
+    LOG_TEMPLATE_ID: "template_71508un"    // Template for Activity Logs
+};
 
 interface HeaderProps {
     viewName: string;
@@ -31,7 +39,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ viewName, user, onMenuClick }) => {
     return (
-        <header className="bg-brand-light p-4 flex justify-between items-center border-b border-gray-200 flex-shrink-0">
+        <header className="bg-brand-light p-4 flex justify-between items-center border-b border-gray-200 flex-shrink-0 print:hidden">
             <div className="flex items-center space-x-4">
                 <button onClick={onMenuClick} className="md:hidden text-brand-text p-1">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -39,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ viewName, user, onMenuClick }) => {
                 <h1 className="text-xl font-bold text-brand-text">{viewName}</h1>
             </div>
             <div className="flex items-center space-x-3">
-                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />
+                <img src={user.avatar} alt="User Avatar" className="w-10 h-10 rounded-full object-cover" />
                 <div className="hidden sm:block">
                     <p className="font-semibold text-brand-text">{user.name}</p>
                     <p className="text-sm text-gray-500">{user.email}</p>
@@ -66,6 +74,7 @@ const App: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [splashLogo, setSplashLogo] = useState<string | null>(null);
@@ -87,6 +96,16 @@ const App: React.FC = () => {
   const inactivityTimer = useRef<number | null>(null);
   const initialLoad = useRef({ contacts: true, rentals: true, repairs: true });
   const processedDocIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    // Initialize EmailJS using window object to ensure it's loaded from CDN
+    const win = window as any;
+    if (win.emailjs) {
+        win.emailjs.init({
+             publicKey: EMAILJS_CONFIG.PUBLIC_KEY,
+        });
+    }
+  }, []);
 
   const addToast = useCallback((title: string, message: string, type: 'success' | 'info' | 'error' = 'info') => {
     const id = toastId.current++;
@@ -110,6 +129,94 @@ const App: React.FC = () => {
       setIsActionLoading(false);
     }
   }, [addToast]);
+
+  // Centralized Logging and Notification Logic
+  const handleLogAction = useCallback(async (
+      actionType: 'CREATE' | 'UPDATE' | 'DELETE', 
+      entity: string, 
+      details: string, 
+      actionPromise: Promise<void>
+  ) => {
+      try {
+          await actionPromise; // Wait for the actual action to complete first
+
+          if (!currentUser) return;
+
+          const logData = {
+              timestamp: new Date().toISOString(),
+              adminName: currentUser.name,
+              adminEmail: currentUser.email,
+              actionType,
+              entity,
+              details
+          };
+
+          // 1. Save log to Firestore
+          await db.createLogEntry(logData);
+
+          // 2. Send Email Notification
+          const emailJS = (window as any).emailjs;
+          
+          if (emailJS) {
+              // Prepare robust parameters for the template
+              const templateParams = {
+                to_email: 'developer@dtechsoftwares.com',
+                email: 'developer@dtechsoftwares.com', // For backward compatibility with some templates
+                to_name: 'Developer',
+                
+                from_name: currentUser.name,
+                from_email: currentUser.email,
+                
+                subject: `[CMS Log] ${actionType} ${entity}`,
+                
+                action_type: actionType,
+                entity: entity,
+                admin_name: currentUser.name,
+                admin_email: currentUser.email,
+                timestamp: new Date().toLocaleString(),
+                details: details,
+                message: details // Some templates might use 'message' instead of 'details'
+            };
+
+            // Explicitly pass public key as 4th arg to ensure correct auth context
+            emailJS.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.LOG_TEMPLATE_ID, templateParams, EMAILJS_CONFIG.PUBLIC_KEY)
+                .then((response: any) => {
+                    console.log("Log email sent successfully", response.status, response.text);
+                })
+                .catch((error: any) => {
+                    console.error("FULL EmailJS Error Object:", error);
+                    
+                    let errorInfo = "Unknown error";
+                    if (error) {
+                         if (error.text) {
+                             errorInfo = `EmailJS Error: ${error.text} (Status: ${error.status})`;
+                         } else if (error.message) {
+                             errorInfo = error.message;
+                         } else if (typeof error === 'string') {
+                             errorInfo = error;
+                         } else {
+                             try {
+                                 const json = JSON.stringify(error);
+                                 if (json !== '{}') errorInfo = json;
+                                 else errorInfo = String(error);
+                             } catch (e) {
+                                 errorInfo = "Non-serializable error object";
+                             }
+                         }
+                    }
+
+                    addToast('Email Log Failed', `Log saved, but email failed: ${errorInfo}`, 'error');
+                });
+          } else {
+              console.warn("EmailJS library not loaded or found on window object.");
+          }
+
+      } catch (error) {
+          console.error("Error logging action or sending email:", error);
+          addToast('Action Failed', 'The database operation could not be completed.', 'error');
+      }
+  }, [currentUser, addToast]);
+
 
   const handleLogout = useCallback(() => handleAction(async () => {
     await auth.signOut();
@@ -161,7 +268,6 @@ const App: React.FC = () => {
         setIsSettingsInitialised(true);
     });
 
-    // FIX: Using compat namespaced API `auth.onAuthStateChanged` instead of modular `onAuthStateChanged(auth, ...)`.
     const authUnsubscriber = auth.onAuthStateChanged(async (authUser: any) => {
         // Unsubscribe from any existing data listeners
         unsubscribers.forEach(unsub => unsub());
@@ -193,13 +299,12 @@ const App: React.FC = () => {
                     inventory: { setter: setInventory, orderByField: 'purchaseDate', orderDirection: 'desc' },
                     sales: { setter: setSales, orderByField: 'saleDate', orderDirection: 'desc' },
                     vendors: { setter: setVendors, orderByField: 'vendorName' },
+                    activity_logs: { setter: setLogs, orderByField: 'timestamp', orderDirection: 'desc' }
                 };
 
                 Object.entries(collectionsToSubscribe).forEach(([collectionName, config]) => {
                     const q = query(collection(firestoreDb, collectionName), orderBy(config.orderByField, config.orderDirection || 'asc'));
                     const unsub = onSnapshot(q, (snapshot) => {
-                        // Explicitly map document data to plain objects to avoid circular references
-                        // from Firestore DocumentSnapshot objects.
                         const data = snapshot.docs.map((doc) => {
                             const plainData = doc.data();
                             return { id: doc.id, ...plainData };
@@ -209,8 +314,7 @@ const App: React.FC = () => {
                     newUnsubscribers.push(unsub);
                 });
                 
-                // Initialize site monitoring for ALL logged-in users to get notifications.
-                // The UI for viewing these submissions is still restricted to Admins.
+                // Initialize site monitoring for ALL logged-in users
                 initializeSiteMonitoringListeners(newUnsubscribers);
                 setUnsubscribers(newUnsubscribers);
 
@@ -222,7 +326,7 @@ const App: React.FC = () => {
             setCurrentUser(null);
             initialLoad.current = { contacts: true, rentals: true, repairs: true };
             processedDocIds.current.clear();
-            [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs].forEach(setter => setter([]));
+            [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs, setLogs].forEach(setter => setter([]));
         }
         setAuthChecked(true);
     });
@@ -236,12 +340,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isSettingsInitialised) {
-        // This effect runs after the first settings snapshot is received.
-        // It ensures the Preloader has a render cycle with the correct splashLogo prop
-        // before we hide it. The timeout ensures the logo is visible.
         const timer = setTimeout(() => {
             setSettingsLoaded(true);
-        }, 6000); // Changed to 6 seconds
+        }, 6000); 
         return () => clearTimeout(timer);
     }
   }, [isSettingsInitialised]);
@@ -303,10 +404,11 @@ const App: React.FC = () => {
     else if (type === 'repair') collectionName = 'repairRequests';
     else return;
 
-    const docRef = doc(firestoreDb, collectionName, id);
-    updateDoc(docRef, { status: newStatus })
-        .then(() => addToast('Success', `Status updated to ${newStatus}.`, 'success'))
-        .catch((error: any) => {
+    const action = handleAction(() => updateDoc(doc(firestoreDb, collectionName, id), { status: newStatus }));
+    handleLogAction('UPDATE', 'Site Submission', `Updated status of ${type} (ID: ${id}) to ${newStatus}`, action as Promise<void>);
+    
+    action.then(() => addToast('Success', `Status updated to ${newStatus}.`, 'success'))
+          .catch((error: any) => {
             console.error("Error updating status: ", error);
             addToast('Error', "Failed to update status.", 'error');
         });
@@ -319,15 +421,14 @@ const App: React.FC = () => {
     else if (type === 'repair') collectionName = 'repairRequests';
     else return;
 
-    handleAction(async () => {
-        try {
-            await deleteDoc(doc(firestoreDb, collectionName, id));
-            addToast('Success', `Submission deleted successfully.`, 'success');
-        } catch (error) {
+    const action = handleAction(() => deleteDoc(doc(firestoreDb, collectionName, id)));
+    handleLogAction('DELETE', 'Site Submission', `Deleted ${type} submission (ID: ${id})`, action as Promise<void>);
+
+    action.then(() => addToast('Success', `Submission deleted successfully.`, 'success'))
+          .catch((error) => {
             console.error("Error deleting submission: ", error);
             addToast('Error', "Failed to delete submission.", 'error');
-        }
-    });
+        });
   };
   
   const handleViewChange = (view: AppView) => {
@@ -343,209 +444,264 @@ const App: React.FC = () => {
     }
   };
   
-  const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
-  const handleDeleteUser = (userId: string) => handleAction(() => db.deleteUser(userId));
-  const handleUpdateLogo = (logo: string | null) => handleAction(async () => { await db.saveAppLogo(logo); setAppLogo(logo); });
-  const handleUpdateSplashLogo = (logo: string | null) => handleAction(async () => { await db.saveSplashLogo(logo); setSplashLogo(logo); });
-
-  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(async () => {
-    await db.createContact(newContact);
-    addToast('New Manual Submission', `Client "${newContact.fullName}" created.`, 'success');
-  });
-  const handleUpdateContact = (updatedContact: Contact) => handleAction(() => db.updateContact(updatedContact));
-  const handleDeleteContact = (contactId: string) => handleAction(() => db.deleteContact(contactId));
-
-  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(async () => {
-    await db.createRental(newRental);
-    addToast('New Manual Submission', 'New rental agreement created.', 'success');
-  });
-  const handleUpdateRental = (updatedRental: Rental) => handleAction(() => db.updateRental(updatedRental));
-  const handleDeleteRental = (rentalId: string) => handleAction(() => db.deleteRental(rentalId));
-
-  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(async () => {
-    await db.createRepair(newRepair);
-    addToast('New Manual Submission', 'New repair request created.', 'success');
-  });
-  const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => db.updateRepair(updatedRepair));
-  const handleDeleteRepair = (repairId: string) => handleAction(() => db.deleteRepair(repairId));
-
-  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(async () => {
-    await db.createInventory(newItem);
-    addToast('New Manual Submission', `Inventory item "${newItem.makeModel}" added.`, 'success');
-  });
-  const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => db.updateInventory(updatedItem));
-  const handleDeleteInventory = (itemId: string) => handleAction(() => db.deleteInventory(itemId));
-
-  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(async () => {
-    await db.createSale(newSale);
-    addToast('New Manual Submission', `Sale to "${newSale.buyerName}" recorded.`, 'success');
-    const soldItem = inventory.find(i => i.id === newSale.itemId);
-    if(soldItem) {
-        await handleUpdateInventory({ ...soldItem, status: 'Sold' });
-    }
-  });
-
-  const handleUpdateSale = (updatedSale: Sale) => handleAction(async () => {
-    const originalSale = sales.find(s => s.id === updatedSale.id);
-    await db.updateSale(updatedSale);
-
-    if (originalSale && originalSale.itemId !== updatedSale.itemId) {
-        const oldItem = inventory.find(i => i.id === originalSale.itemId);
-        const newItem = inventory.find(i => i.id === updatedSale.itemId);
-        if(oldItem) await handleUpdateInventory({ ...oldItem, status: 'Available' });
-        if(newItem) await handleUpdateInventory({ ...newItem, status: 'Sold' });
-    }
-  });
-
-  const handleDeleteSale = (saleId: string) => handleAction(async () => {
-    const saleToDelete = sales.find(s => s.id === saleId);
-    await db.deleteSale(saleId);
-    if(saleToDelete) {
-        const item = inventory.find(i => i.id === saleToDelete.itemId);
-        if(item) await handleUpdateInventory({ ...item, status: 'Available' });
-    }
-  });
-
-  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(async () => {
-    await db.createVendor(newVendor);
-    addToast('New Manual Submission', `Vendor "${newVendor.vendorName}" added.`, 'success');
-  });
-  const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => db.updateVendor(updatedVendor));
-  const handleDeleteVendor = (vendorId: string) => handleAction(() => db.deleteVendor(vendorId));
-
-  const handleUpdateSmsSettings = (settings: SmsSettings) => handleAction(async () => {
-    await db.saveSmsSettings(settings);
-    setSmsSettings(settings);
-  });
-
-  const handleUpdateNotificationSettings = (settings: NotificationSettings) => handleAction(async () => {
-    await db.saveNotificationSettings(settings);
-    setNotificationSettings(settings);
-  });
+  const handleUpdateUser = (updatedUser: User) => {
+      const action = handleAction(() => db.updateUser(updatedUser));
+      handleLogAction('UPDATE', 'User', `Updated user ${updatedUser.name} (${updatedUser.email})`, action as Promise<void>);
+  };
   
-  const handleUpdateAdminKey = (key: string) => handleAction(async () => {
-    await db.saveAdminKey(key);
-    setAdminKey(key);
-    addToast('Success', 'Admin Registration Key updated successfully!', 'success');
-  });
+  const handleDeleteUser = (userId: string) => {
+      const userToDelete = users.find(u => u.id === userId);
+      const action = handleAction(() => db.deleteUser(userId));
+      handleLogAction('DELETE', 'User', `Deleted user ${userToDelete?.name || userId}`, action as Promise<void>);
+  };
+
+  const handleUpdateLogo = (logo: string | null) => {
+      const action = handleAction(async () => { await db.saveAppLogo(logo); setAppLogo(logo); });
+      handleLogAction('UPDATE', 'Settings', 'Updated Application Logo', action as Promise<void>);
+  };
+
+  const handleUpdateSplashLogo = (logo: string | null) => {
+      const action = handleAction(async () => { await db.saveSplashLogo(logo); setSplashLogo(logo); });
+      handleLogAction('UPDATE', 'Settings', 'Updated Splash Screen Logo', action as Promise<void>);
+  };
+
+  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => {
+      const action = handleAction(async () => {
+        await db.createContact(newContact);
+        addToast('New Manual Submission', `Client "${newContact.fullName}" created.`, 'success');
+      });
+      handleLogAction('CREATE', 'Client', `Created client ${newContact.fullName}`, action as Promise<void>);
+  };
+
+  const handleUpdateContact = (updatedContact: Contact) => {
+      const action = handleAction(() => db.updateContact(updatedContact));
+      handleLogAction('UPDATE', 'Client', `Updated client ${updatedContact.fullName}`, action as Promise<void>);
+  };
+
+  const handleDeleteContact = (contactId: string) => {
+      const contactToDelete = contacts.find(c => c.id === contactId);
+      const action = handleAction(() => db.deleteContact(contactId));
+      handleLogAction('DELETE', 'Client', `Deleted client ${contactToDelete?.fullName || contactId}`, action as Promise<void>);
+  };
+
+  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => {
+      const contactName = contacts.find(c => c.id === newRental.contactId)?.fullName || 'Unknown';
+      const action = handleAction(async () => {
+        await db.createRental(newRental);
+        addToast('New Manual Submission', 'New rental agreement created.', 'success');
+      });
+      handleLogAction('CREATE', 'Rental', `Created rental for ${contactName}`, action as Promise<void>);
+  };
+
+  const handleUpdateRental = (updatedRental: Rental) => {
+      const action = handleAction(() => db.updateRental(updatedRental));
+      handleLogAction('UPDATE', 'Rental', `Updated rental ${updatedRental.id}`, action as Promise<void>);
+  };
+
+  const handleDeleteRental = (rentalId: string) => {
+      const action = handleAction(() => db.deleteRental(rentalId));
+      handleLogAction('DELETE', 'Rental', `Deleted rental ${rentalId}`, action as Promise<void>);
+  };
+
+  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => {
+      const contactName = contacts.find(c => c.id === newRepair.contactId)?.fullName || 'Unknown';
+      const action = handleAction(async () => {
+        await db.createRepair(newRepair);
+        addToast('New Manual Submission', 'New repair request created.', 'success');
+      });
+      handleLogAction('CREATE', 'Repair', `Created repair request for ${contactName}`, action as Promise<void>);
+  };
+
+  const handleUpdateRepair = (updatedRepair: Repair) => {
+      const action = handleAction(() => db.updateRepair(updatedRepair));
+      handleLogAction('UPDATE', 'Repair', `Updated repair ${updatedRepair.id}`, action as Promise<void>);
+  };
+
+  const handleDeleteRepair = (repairId: string) => {
+      const action = handleAction(() => db.deleteRepair(repairId));
+      handleLogAction('DELETE', 'Repair', `Deleted repair ${repairId}`, action as Promise<void>);
+  };
+
+  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => {
+      const action = handleAction(async () => {
+        await db.createInventory(newItem);
+        addToast('New Manual Submission', `Inventory item "${newItem.makeModel}" added.`, 'success');
+      });
+      handleLogAction('CREATE', 'Inventory', `Added ${newItem.itemType}: ${newItem.makeModel} (SN: ${newItem.serialNumber})`, action as Promise<void>);
+  };
+
+  const handleUpdateInventory = (updatedItem: InventoryItem) => {
+      const action = handleAction(() => db.updateInventory(updatedItem));
+      handleLogAction('UPDATE', 'Inventory', `Updated item ${updatedItem.makeModel} (SN: ${updatedItem.serialNumber})`, action as Promise<void>);
+  };
+
+  const handleDeleteInventory = (itemId: string) => {
+      const itemToDelete = inventory.find(i => i.id === itemId);
+      const action = handleAction(() => db.deleteInventory(itemId));
+      handleLogAction('DELETE', 'Inventory', `Deleted item ${itemToDelete?.makeModel || itemId}`, action as Promise<void>);
+  };
+
+  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => {
+      const action = handleAction(async () => {
+        await db.createSale(newSale);
+        addToast('New Manual Submission', `Sale to "${newSale.buyerName}" recorded.`, 'success');
+        const soldItem = inventory.find(i => i.id === newSale.itemId);
+        if(soldItem) {
+            await db.updateInventory({ ...soldItem, status: 'Sold' });
+        }
+      });
+      handleLogAction('CREATE', 'Sale', `Recorded sale ${newSale.saleId} to ${newSale.buyerName}`, action as Promise<void>);
+  };
+
+  const handleUpdateSale = (updatedSale: Sale) => {
+      const action = handleAction(() => db.updateSale(updatedSale));
+      handleLogAction('UPDATE', 'Sale', `Updated sale ${updatedSale.saleId}`, action as Promise<void>);
+  };
+
+  const handleDeleteSale = (saleId: string) => {
+      const saleToDelete = sales.find(s => s.id === saleId);
+      const action = handleAction(async () => {
+          await db.deleteSale(saleId);
+          // Optionally revert item status, but business logic might vary. Keeping simple for now.
+          if (saleToDelete) {
+              const soldItem = inventory.find(i => i.id === saleToDelete.itemId);
+              if (soldItem) {
+                  await db.updateInventory({ ...soldItem, status: 'Available' });
+              }
+          }
+      });
+      handleLogAction('DELETE', 'Sale', `Deleted sale ${saleToDelete?.saleId || saleId}`, action as Promise<void>);
+  };
+
+  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => {
+      const action = handleAction(async () => {
+        await db.createVendor(newVendor);
+        addToast('New Manual Submission', `Vendor "${newVendor.vendorName}" added.`, 'success');
+      });
+      handleLogAction('CREATE', 'Vendor', `Created vendor ${newVendor.vendorName}`, action as Promise<void>);
+  };
+
+  const handleUpdateVendor = (updatedVendor: Vendor) => {
+      const action = handleAction(() => db.updateVendor(updatedVendor));
+      handleLogAction('UPDATE', 'Vendor', `Updated vendor ${updatedVendor.vendorName}`, action as Promise<void>);
+  };
+
+  const handleDeleteVendor = (vendorId: string) => {
+      const vendorToDelete = vendors.find(v => v.id === vendorId);
+      const action = handleAction(() => db.deleteVendor(vendorId));
+      handleLogAction('DELETE', 'Vendor', `Deleted vendor ${vendorToDelete?.vendorName || vendorId}`, action as Promise<void>);
+  };
   
-  if (appLoading) {
-    return <Preloader splashLogo={splashLogo} />;
+  const handleUpdateSmsSettings = (settings: SmsSettings) => {
+      const action = handleAction(async () => {
+          await db.saveSmsSettings(settings);
+          setSmsSettings(settings);
+      });
+      handleLogAction('UPDATE', 'Settings', 'Updated Twilio SMS Settings', action as Promise<void>);
+  };
+
+  const handleUpdateAdminKey = (key: string) => {
+      const action = handleAction(async () => {
+          await db.saveAdminKey(key);
+          setAdminKey(key);
+          addToast('Success', 'Admin Key updated successfully.', 'success');
+      });
+      handleLogAction('UPDATE', 'Settings', 'Updated Admin Registration Key', action as Promise<void>);
+  };
+
+  const handleUpdateNotificationSettings = (settings: NotificationSettings) => {
+      const action = handleAction(async () => {
+          await db.saveNotificationSettings(settings);
+          setNotificationSettings(settings);
+      });
+      // No log for this to avoid spamming logs when toggling
+  };
+
+  const handleDeleteLog = (logId: string) => {
+      const action = handleAction(() => db.deleteLogEntry(logId));
+      handleLogAction('DELETE', 'Activity Log', `Deleted log entry ${logId}`, action as Promise<void>);
+  };
+
+  // Render logic
+  if (!authChecked || !isSettingsInitialised || !settingsLoaded) {
+    return (
+        <>
+            <Preloader splashLogo={splashLogo} />
+            <div className="fixed bottom-4 right-4 text-xs text-white z-[10000]">v1.1</div>
+        </>
+    );
   }
 
   if (!currentUser) {
-    return <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} />;
+    return (
+      <>
+        <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} />
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+      </>
+    );
   }
 
-  const isAdmin = currentUser.role === 'Admin';
-
-  const getViewName = (view: AppView): string => {
-    switch (view) {
-      case AppView.Dashboard: return 'Dashboard';
-      case AppView.Inventory: return 'Inventory Management';
-      case AppView.Contacts: return 'Clients';
-      case AppView.Rentals: return 'Rentals';
-      case AppView.SalesLog: return 'Sales Log';
-      case AppView.Repairs: return 'Repairs';
-      case AppView.Notifications: return 'Notifications';
-      case AppView.Reports: return 'Reports';
-      case AppView.Vendors: return 'Vendor Management';
-      case AppView.Users: return 'Users';
-      case AppView.Settings: return 'Settings';
-      case AppView.MonitorSite: return 'Site Monitoring Dashboard';
-      case AppView.HtmlViewer: return 'HTML Viewer';
-      default: return 'Dashboard';
-    }
-  };
-
-  const renderView = () => {
-    const adminOnlyViews = [AppView.Users, AppView.Settings, AppView.Notifications, AppView.Reports, AppView.MonitorSite, AppView.HtmlViewer];
-    if (!isAdmin && adminOnlyViews.includes(currentView)) {
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
-    }
-
-    switch (currentView) {
-      case AppView.Dashboard:
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
-      case AppView.Inventory:
-        return <Inventory inventory={inventory} vendors={vendors} currentUser={currentUser} onCreateItem={handleCreateInventory} onUpdateItem={handleUpdateInventory} onDeleteItem={handleDeleteInventory} addToast={addToast} adminKey={adminKey} />;
-      case AppView.SalesLog:
-        return <SalesLog sales={sales} inventory={inventory} currentUser={currentUser} onCreateSale={handleCreateSale} onUpdateSale={handleUpdateSale} onDeleteSale={handleDeleteSale} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Vendors:
-        return <Vendors vendors={vendors} inventory={inventory} currentUser={currentUser} onCreateVendor={handleCreateVendor} onUpdateVendor={handleUpdateVendor} onDeleteVendor={handleDeleteVendor} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Users:
-        return <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Contacts:
-        return <Contacts contacts={contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Settings:
-        return <Settings 
-                    onUpdateLogo={handleUpdateLogo} 
-                    currentLogo={appLogo} 
-                    smsSettings={smsSettings} 
-                    onUpdateSmsSettings={handleUpdateSmsSettings} 
-                    adminKey={adminKey} 
-                    onUpdateAdminKey={handleUpdateAdminKey}
-                    currentSplashLogo={splashLogo}
-                    onUpdateSplashLogo={handleUpdateSplashLogo}
-                    addToast={addToast}
-                    notificationSettings={notificationSettings}
-                    onUpdateNotificationSettings={handleUpdateNotificationSettings}
-                />;
-      case AppView.Rentals:
-        return <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Repairs:
-        return <Repairs repairs={repairs} contacts={contacts} currentUser={currentUser} onCreateRepair={handleCreateRepair} onUpdateRepair={handleUpdateRepair} onDeleteRepair={handleDeleteRepair} addToast={addToast} adminKey={adminKey} />;
-      case AppView.Notifications:
-        return <Notifications contacts={contacts} handleAction={handleAction} smsSettings={smsSettings} addToast={addToast} notificationSettings={notificationSettings} />;
-      case AppView.Reports:
-        return <Reports 
-                    contacts={contacts} 
-                    rentals={rentals} 
-                    repairs={repairs} 
-                    handleAction={handleAction} 
-                    siteContacts={siteContacts}
-                    siteRentals={siteRentals}
-                    siteRepairs={siteRepairs}
-                />;
-      case AppView.MonitorSite:
-        return <MonitorSite 
-                    siteContacts={siteContacts} 
-                    siteRentals={siteRentals} 
-                    siteRepairs={siteRepairs} 
-                    onUpdateStatus={handleUpdateFirebaseStatus} 
-                    onDeleteSubmission={handleDeleteFirebaseSubmission}
-                    adminKey={adminKey}
-                    addToast={addToast}
-                />;
-      case AppView.HtmlViewer:
-        return <HtmlViewer />;
-      default:
-        return <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />;
-    }
-  };
-
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
+    <div className="flex h-screen bg-gray-50 font-sans print:h-auto print:block">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden print:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 md:z-0 flex flex-col h-full print:hidden`}>
+        <Sidebar 
+            currentView={currentView} 
+            setCurrentView={handleViewChange} 
+            onLogout={handleLogout}
+            appLogo={appLogo}
+            currentUser={currentUser}
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden relative print:block print:h-auto print:overflow-visible">
+        <Header viewName={currentView === AppView.MonitorSite ? 'Site Monitor' : AppView[currentView]} user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
+        
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 relative print:h-auto print:overflow-visible">
+          {currentView === AppView.Dashboard && <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} users={users} currentUser={currentUser} />}
+          {currentView === AppView.Users && <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Contacts && <Contacts contacts={contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Rentals && <Rentals rentals={rentals} contacts={contacts} currentUser={currentUser} onCreateRental={handleCreateRental} onUpdateRental={handleUpdateRental} onDeleteRental={handleDeleteRental} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Repairs && <Repairs repairs={repairs} contacts={contacts} currentUser={currentUser} onCreateRepair={handleCreateRepair} onUpdateRepair={handleUpdateRepair} onDeleteRepair={handleDeleteRepair} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Inventory && <Inventory inventory={inventory} vendors={vendors} currentUser={currentUser} onCreateItem={handleCreateInventory} onUpdateItem={handleUpdateInventory} onDeleteItem={handleDeleteInventory} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.SalesLog && <SalesLog sales={sales} inventory={inventory} currentUser={currentUser} onCreateSale={handleCreateSale} onUpdateSale={handleUpdateSale} onDeleteSale={handleDeleteSale} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Vendors && <Vendors vendors={vendors} inventory={inventory} currentUser={currentUser} onCreateVendor={handleCreateVendor} onUpdateVendor={handleUpdateVendor} onDeleteVendor={handleDeleteVendor} addToast={addToast} adminKey={adminKey} />}
+          {currentView === AppView.Notifications && <Notifications contacts={contacts} smsSettings={smsSettings} notificationSettings={notificationSettings} handleAction={handleAction} addToast={addToast} />}
+          {currentView === AppView.Reports && <Reports contacts={contacts} rentals={rentals} repairs={repairs} siteContacts={siteContacts} siteRentals={siteRentals} siteRepairs={siteRepairs} handleAction={handleAction} />}
+          {currentView === AppView.MonitorSite && <MonitorSite siteContacts={siteContacts} siteRentals={siteRentals} siteRepairs={siteRepairs} onUpdateStatus={handleUpdateFirebaseStatus} onDeleteSubmission={handleDeleteFirebaseSubmission} adminKey={adminKey} addToast={addToast} />}
+          {currentView === AppView.HtmlViewer && <HtmlViewer />}
+          {currentView === AppView.ActivityLogs && <ActivityLogs logs={logs} onDeleteLog={handleDeleteLog} adminKey={adminKey} addToast={addToast} />}
+          
+          {currentView === AppView.Settings && (
+              <Settings 
+                onUpdateLogo={handleUpdateLogo} 
+                currentLogo={appLogo} 
+                smsSettings={smsSettings}
+                onUpdateSmsSettings={handleUpdateSmsSettings}
+                adminKey={adminKey}
+                onUpdateAdminKey={handleUpdateAdminKey}
+                currentSplashLogo={splashLogo}
+                onUpdateSplashLogo={handleUpdateSplashLogo}
+                addToast={addToast}
+                notificationSettings={notificationSettings}
+                onUpdateNotificationSettings={handleUpdateNotificationSettings}
+              />
+          )}
+        </main>
+        
         {isActionLoading && <Spinner />}
-    
-        <div className={`fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <Sidebar currentView={currentView} setCurrentView={handleViewChange} onLogout={handleLogout} appLogo={appLogo} currentUser={currentUser} />
-        </div>
-    
-        <div className="flex-1 flex flex-col min-w-0">
-            <Header viewName={getViewName(currentView)} user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} />
-            <main className="flex-1 overflow-y-auto bg-gray-50">
-                {renderView()}
-            </main>
-        </div>
-    
-        {isSidebarOpen && (
-            <div 
-                className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" 
-                onClick={() => setIsSidebarOpen(false)}
-            ></div>
-        )}
+      </div>
+      
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };

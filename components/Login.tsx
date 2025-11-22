@@ -107,7 +107,27 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
         await auth.signInWithEmailAndPassword(email, password);
         // onAuthStateChanged in App.tsx will handle the rest
     } catch (err: any) {
-        setError(err.message || 'Invalid email or password.');
+        switch (err.code) {
+            case 'auth/user-not-found':
+                setError('No account found with that email address. Please check for typos or register for a new account.');
+                break;
+            case 'auth/wrong-password':
+                setError('Incorrect password. Please try again, or use the "Forgot Password?" link to reset it.');
+                break;
+            case 'auth/invalid-email':
+                setError('The email address is not valid. Please enter a correctly formatted email.');
+                break;
+            case 'auth/user-disabled':
+                 setError('This user account has been disabled. Please contact an administrator.');
+                 break;
+            case 'auth/invalid-credential':
+                setError('Invalid credentials. Please double-check your email and password.');
+                break;
+            default:
+                setError('An unexpected error occurred during login. Please try again later.');
+                console.error("Login Error:", err);
+                break;
+        }
     } finally {
         setIsSubmitting(false);
     }

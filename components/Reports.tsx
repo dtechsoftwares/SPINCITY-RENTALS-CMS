@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Contact, Rental, Repair, SiteContact, SiteRental, SiteRepair } from '../types';
 import { ContactsIcon, RentalsIcon, RepairsIcon, MonitorIcon } from './Icons';
@@ -142,10 +143,6 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, siteConta
         document.body.removeChild(link);
     });
 
-    const handlePrint = () => handleAction(() => {
-        window.print();
-    });
-
     const handleEmailReport = () => handleAction(() => {
         const subject = `SpinCity CMS Report: ${period.charAt(0).toUpperCase() + period.slice(1)} - ${new Date().toLocaleDateString()}`;
         const body = `Here is the ${period} report summary:\n\n` +
@@ -167,9 +164,22 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, siteConta
 
     return (
         <div className="p-4 sm:p-8 text-brand-text">
+            <div className="hidden print:block mb-8 border-b border-gray-300 pb-4">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold text-brand-text">Spin City Rentals Report</h1>
+                        <p className="text-gray-500">Generated on {new Date().toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="font-bold text-xl text-brand-green">Performance Summary</p>
+                        <p className="text-sm text-gray-500">Period: {period.charAt(0).toUpperCase() + period.slice(1)}</p>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold">Reports</h1>
-                <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg self-start sm:self-auto">
+                <h1 className="text-2xl sm:text-3xl font-bold print:hidden">Reports</h1>
+                <div className="flex space-x-2 p-1 bg-gray-200 rounded-lg self-start sm:self-auto print:hidden">
                     <PeriodButton value="all" label="All Time" />
                     <PeriodButton value="daily" label="Today" />
                     <PeriodButton value="monthly" label="This Month" />
@@ -195,11 +205,10 @@ const Reports: React.FC<ReportsProps> = ({ contacts, rentals, repairs, siteConta
 
             <BarChart data={chartData} />
             
-            <div className="mt-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="mt-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm print:hidden">
                 <h3 className="text-lg font-bold mb-4">Actions</h3>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                     <button onClick={handleExportCSV} className="w-full sm:w-auto bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Export to CSV</button>
-                    <button onClick={handlePrint} className="w-full sm:w-auto bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Print / Save as PDF</button>
                     <button onClick={handleEmailReport} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark transition-colors">Email Report</button>
                 </div>
             </div>

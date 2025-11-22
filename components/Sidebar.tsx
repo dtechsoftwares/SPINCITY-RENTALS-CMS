@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppView, User } from '../types';
-import { DashboardIcon, ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon, SettingsIcon, LogoutIcon, NotificationsIcon, ReportsIcon, InventoryIcon, SalesLogIcon, VendorsIcon, MonitorIcon, HtmlViewerIcon } from './Icons';
+import { DashboardIcon, ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon, SettingsIcon, LogoutIcon, NotificationsIcon, ReportsIcon, InventoryIcon, SalesLogIcon, VendorsIcon, MonitorIcon, HtmlViewerIcon, ActivityLogIcon } from './Icons';
 
 interface SidebarProps {
   currentView: AppView;
@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
     { view: AppView.Reports, icon: ReportsIcon, label: 'Reports', adminOnly: true },
     { view: AppView.Notifications, icon: NotificationsIcon, label: 'Notifications', adminOnly: true },
     { view: AppView.Users, icon: UsersIcon, label: 'Users', adminOnly: true },
+    { view: AppView.ActivityLogs, icon: ActivityLogIcon, label: 'Activity Logs', adminOnly: true },
   ];
 
   // Settings is moved to the footer to keep it always visible.

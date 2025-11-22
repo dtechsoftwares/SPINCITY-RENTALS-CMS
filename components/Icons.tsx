@@ -64,6 +64,10 @@ export const HtmlViewerIcon = ({ className = 'w-6 h-6' }: { className?: string }
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
 );
 
+export const ActivityLogIcon = ({ className = 'w-6 h-6' }: { className?: string }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+);
+
 export const HelpIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4 0 .863-.27 1.66-.744 2.267l-1.114 1.115a1.125 1.125 0 01-1.591 0l-1.114-1.115a1.125 1.125 0 01-.293-.794V9.5a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.253M12 18h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>

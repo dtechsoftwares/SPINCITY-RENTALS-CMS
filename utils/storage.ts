@@ -1,4 +1,5 @@
-import { User, Contact, InventoryItem, Vendor, Rental, Repair, Sale, SmsSettings, NotificationSettings } from '../types';
+
+import { User, Contact, InventoryItem, Vendor, Rental, Repair, Sale, SmsSettings, NotificationSettings, LogEntry } from '../types';
 import { db } from './firebase';
 import { doc, setDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 
@@ -11,7 +12,8 @@ const COLLECTIONS = {
     RENTALS: 'rentals',
     REPAIRS: 'repairs',
     SALES: 'sales',
-    SETTINGS: 'settings'
+    SETTINGS: 'settings',
+    LOGS: 'activity_logs'
 };
 
 const SETTINGS_DOC_ID = 'main';
@@ -44,6 +46,10 @@ export const deleteUser = async (id: string): Promise<void> => {
     await deleteDoc(doc(db, COLLECTIONS.USERS, id));
 };
 
+// Activity Logs
+export const createLogEntry = async (log: Omit<LogEntry, 'id'>): Promise<void> => {
+    await addDoc(collection(db, COLLECTIONS.LOGS), log);
+};
 
 // Generic create, update, delete for other collections
 const createDoc = async <T extends { id: string }>(collectionName: string, data: Omit<T, 'id'>): Promise<T> => {
@@ -89,3 +95,6 @@ export const deleteSale = (id: string) => deleteDocument(COLLECTIONS.SALES, id);
 export const createVendor = (vendor: Omit<Vendor, 'id'>) => createDoc<Vendor>(COLLECTIONS.VENDORS, vendor);
 export const updateVendor = (vendor: Vendor) => updateDocData<Vendor>(COLLECTIONS.VENDORS, vendor);
 export const deleteVendor = (id: string) => deleteDocument(COLLECTIONS.VENDORS, id);
+
+// Activity Logs Delete
+export const deleteLogEntry = (id: string) => deleteDocument(COLLECTIONS.LOGS, id);

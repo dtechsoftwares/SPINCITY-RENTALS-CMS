@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { CloseIcon } from './Icons';
 
@@ -75,7 +76,7 @@ interface ToastContainerProps {
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
     return (
-        <div aria-live="assertive" className="fixed inset-0 flex items-start px-4 py-6 pointer-events-none sm:p-6 z-[10000]">
+        <div aria-live="assertive" className="fixed inset-0 flex items-start px-4 py-6 pointer-events-none sm:p-6 z-[10000] print:hidden">
             <div className="w-full flex flex-col items-end space-y-4">
                 {toasts.map(toast => (
                     <Toast key={toast.id} toast={toast} onClose={removeToast} />

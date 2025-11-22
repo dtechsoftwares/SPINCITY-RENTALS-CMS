@@ -1,3 +1,4 @@
+
 export enum AppView {
   Dashboard,
   Inventory,
@@ -12,6 +13,7 @@ export enum AppView {
   Settings,
   MonitorSite,
   HtmlViewer,
+  ActivityLogs,
 }
 
 export interface User {
@@ -21,6 +23,16 @@ export interface User {
   password?: string;
   role: 'Admin' | 'User';
   avatar: string;
+}
+
+export interface LogEntry {
+    id: string;
+    timestamp: string;
+    adminName: string;
+    adminEmail: string;
+    actionType: 'CREATE' | 'UPDATE' | 'DELETE';
+    entity: string; // e.g., 'Contact', 'Rental', 'User'
+    details: string;
 }
 
 export const ContactPlans = [
