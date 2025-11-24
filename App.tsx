@@ -223,25 +223,36 @@ const App: React.FC = () => {
   }), [handleAction]);
 
   const logoutDueToInactivity = useCallback(() => {
+    if (inactivityTimer.current) {
+        window.clearTimeout(inactivityTimer.current);
+    }
     handleLogout();
-    setTimeout(() => addToast('Session Expired', 'You have been logged out due to inactivity.', 'info'), 100);
+    setTimeout(() => addToast('Session Expired', 'You have been logged out due to inactivity.', 'info'), 500);
   }, [handleLogout, addToast]);
   
   // Effect for inactivity timer
   useEffect(() => {
     if (currentUser) {
+        let lastResetTimestamp = 0;
+
         const resetTimer = () => {
-            if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+            const now = Date.now();
+            // Throttle: only reset if more than 1 second has passed since last reset
+            if (now - lastResetTimestamp < 1000) return;
+            lastResetTimestamp = now;
+
+            if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
             inactivityTimer.current = window.setTimeout(logoutDueToInactivity, 5 * 60 * 1000); // 5 minutes
         };
 
-        const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+        // mousedown, keydown, click are more reliable indicators than mousemove
+        const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll', 'click'];
         
         resetTimer(); // Initial timer
         events.forEach(event => window.addEventListener(event, resetTimer));
         
         return () => {
-            if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+            if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
             events.forEach(event => window.removeEventListener(event, resetTimer));
         };
     }
