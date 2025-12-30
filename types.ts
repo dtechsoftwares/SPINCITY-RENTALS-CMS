@@ -14,6 +14,7 @@ export enum AppView {
   MonitorSite,
   HtmlViewer,
   ActivityLogs,
+  AiAssistant,
 }
 
 export interface User {
@@ -31,7 +32,7 @@ export interface LogEntry {
     adminName: string;
     adminEmail: string;
     actionType: 'CREATE' | 'UPDATE' | 'DELETE';
-    entity: string; // e.g., 'Contact', 'Rental', 'User'
+    entity: string;
     details: string;
 }
 
@@ -59,7 +60,7 @@ export interface Contact {
   plan: ContactPlan;
   hookupType: HookupType;
   notes?: string;
-  createdAt: string; // 'YYYY-MM-DD'
+  createdAt: string; 
 }
 
 export const RentalPlans = {
@@ -84,10 +85,11 @@ export type DeliveryPaymentOption = typeof DeliveryPaymentOptions[number];
 export interface Rental {
     id: string;
     contactId: string;
+    inventoryItemId?: string; // Linked Inventory Item
     plan: RentalPlan;
     maintenanceOption: MaintenanceOption;
     status: RentalStatus;
-    startDate: string; // 'YYYY-MM-DD'
+    startDate: string;
     monthlyRate: number;
     rentalPropertyAddress: string;
     emergencyContactFullName: string;
@@ -138,7 +140,7 @@ export interface Repair {
     appliance: Appliance;
     issueDescription: string;
     status: RepairStatus;
-    reportedDate: string; // 'YYYY-MM-DD'
+    reportedDate: string;
     accountNumber?: string;
     serviceAddress: string;
     city: string;
@@ -190,7 +192,7 @@ export type InventoryStatus = typeof InventoryStatuses[number];
 export interface InventoryItem {
     id: string;
     purchaseId: string;
-    purchaseDate: string; // YYYY-MM-DD
+    purchaseDate: string;
     vendor: string;
     itemType: InventoryItemType;
     makeModel: string;
@@ -204,7 +206,7 @@ export interface InventoryItem {
 export interface Sale {
     id: string;
     saleId: string;
-    saleDate: string; // YYYY-MM-DD
+    saleDate: string;
     itemId: string;
     salePrice: number;
     buyerName: string;
@@ -214,8 +216,6 @@ export interface Sale {
     billOfSaleLink: string;
     notes?: string;
 }
-
-// --- Firebase Site Monitoring Types ---
 
 export interface SiteContact {
     id: string;

@@ -1,5 +1,7 @@
 {
-  "name": "SpinCity Rentals CMS- UPGRADED",
-  "description": "A robust CRM for SpinCity Rentals to manage contacts, rentals, repairs, users, and settings with an AI-powered assistant.",
-  "requestFramePermissions": []
+  "name": "SpinCity Rentals CRM - Robust",
+  "description": "A robust, AI-powered CRM for SpinCity Rentals with real-time asset tracking and business intelligence.",
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppView, User } from '../types';
 import { DashboardIcon, ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon, SettingsIcon, LogoutIcon, NotificationsIcon, ReportsIcon, InventoryIcon, SalesLogIcon, VendorsIcon, MonitorIcon, HtmlViewerIcon, ActivityLogIcon } from './Icons';
@@ -13,9 +14,11 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout, appLogo, currentUser }) => {
   const isAdmin = currentUser.role === 'Admin';
 
-  // Splitting nav items into main and footer sections for better layout control.
   const mainNavItems = [
     { view: AppView.Dashboard, icon: DashboardIcon, label: 'Dashboard', adminOnly: false },
+    { view: AppView.AiAssistant, icon: () => (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+    ), label: 'AI Assistant', adminOnly: false },
     { view: AppView.Inventory, icon: InventoryIcon, label: 'Inventory', adminOnly: false },
     { view: AppView.Contacts, icon: ContactsIcon, label: 'Clients', adminOnly: false },
     { view: AppView.Rentals, icon: RentalsIcon, label: 'Rentals', adminOnly: false },
@@ -30,7 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
     { view: AppView.ActivityLogs, icon: ActivityLogIcon, label: 'Activity Logs', adminOnly: true },
   ];
 
-  // Settings is moved to the footer to keep it always visible.
   const footerNavItems = [
     { view: AppView.Settings, icon: SettingsIcon, label: 'Settings', adminOnly: true },
   ];
@@ -39,8 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
   const visibleFooterNavItems = footerNavItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
-    <aside className="w-64 bg-brand-light text-brand-text flex flex-col border-r border-gray-200">
-      {/* Header (fixed top) */}
+    <aside className="w-64 bg-brand-light text-brand-text flex flex-col h-full border-r border-gray-200">
       <div className="p-6 flex items-center space-x-3 flex-shrink-0">
         <div className="bg-brand-green p-2 rounded-lg flex justify-center items-center w-12 h-12">
           {appLogo ? (
@@ -51,20 +52,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
             </svg>
           )}
         </div>
-        <h1 className="text-xl font-bold">SpinCity Rentals CMS</h1>
+        <h1 className="text-xl font-bold leading-tight">SpinCity CRM</h1>
       </div>
 
-      {/* Main Navigation (scrollable) */}
       <nav className="flex-1 px-4 py-2 min-h-0 overflow-y-auto">
         <ul>
           {visibleMainNavItems.map((item) => (
-            <li key={item.view}>
+            <li key={item.label}>
               <button
                 onClick={() => setCurrentView(item.view)}
                 className={`w-full flex items-center space-x-3 p-3 my-1 rounded-lg transition-colors duration-200 font-medium ${
                   currentView === item.view
                     ? 'bg-lime-100 text-lime-700'
-                    : 'hover:bg-gray-100'
+                    : 'hover:bg-gray-100 text-gray-600'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -75,7 +75,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
         </ul>
       </nav>
       
-      {/* Footer (fixed bottom) */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <ul className="space-y-1">
             {visibleFooterNavItems.map((item) => (

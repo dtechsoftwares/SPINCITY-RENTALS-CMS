@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { CloseIcon } from './Icons';
 import * as db from '../utils/storage';
 import { auth, db as firestoreDb } from '../utils/firebase';
 import { collection, query, limit, getDocs } from 'firebase/firestore';
-// FIX: Module '"firebase/auth"' has no exported members for auth functions. Removed modular imports.
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { defaultLogoBase64 } from '../assets/default-logo';
 
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
@@ -69,7 +70,6 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
   // Password Reset state
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [resetMessage, setResetMessage] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
 
   // Registration state
@@ -89,10 +89,16 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
 
   useEffect(() => {
     const checkFirstUser = async () => {
-        const usersCollectionRef = collection(firestoreDb, 'users');
-        const q = query(usersCollectionRef, limit(1));
-        const usersSnapshot = await getDocs(q);
-        setIsFirstUser(usersSnapshot.empty);
+        try {
+            const usersCollectionRef = collection(firestoreDb, 'users');
+            const q = query(usersCollectionRef, limit(1));
+            const usersSnapshot = await getDocs(q);
+            setIsFirstUser(usersSnapshot.empty);
+        } catch (err: any) {
+            // If permission denied, it means rules are working (auth required), 
+            // so we can conclude users exist and the system is initialized.
+            setIsFirstUser(false);
+        }
     };
     checkFirstUser();
   }, []);
@@ -103,29 +109,27 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
     setIsSubmitting(true);
     
     try {
-        // FIX: Using compat namespaced API `auth.signInWithEmailAndPassword` instead of modular `signInWithEmailAndPassword(auth, ...)`.
-        await auth.signInWithEmailAndPassword(email, password);
-        // onAuthStateChanged in App.tsx will handle the rest
+        await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
         switch (err.code) {
             case 'auth/user-not-found':
-                setError('No account found with that email address. Please check for typos or register for a new account.');
+                setError('No account found with that email. Please check for typos or register.');
                 break;
             case 'auth/wrong-password':
-                setError('Incorrect password. Please try again, or use the "Forgot Password?" link to reset it.');
+                setError('Incorrect password. Please try again.');
                 break;
             case 'auth/invalid-email':
-                setError('The email address is not valid. Please enter a correctly formatted email.');
+                setError('Invalid email address.');
                 break;
             case 'auth/user-disabled':
-                 setError('This user account has been disabled. Please contact an administrator.');
+                 setError('This user account has been disabled.');
                  break;
             case 'auth/invalid-credential':
-                setError('Invalid credentials. Please double-check your email and password.');
+            case 'auth/invalid-login-credentials':
+                setError('Invalid email or password.');
                 break;
             default:
-                setError('An unexpected error occurred during login. Please try again later.');
-                console.error("Login Error:", err);
+                setError('An unexpected error occurred during login.');
                 break;
         }
     } finally {
@@ -150,8 +154,8 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
             await db.saveAdminKey(regAdminKey);
         }
         
-        // FIX: Using compat namespaced API `auth.createUserWithEmailAndPassword` instead of modular `createUserWithEmailAndPassword(auth, ...)`.
-        const { user: authUser } = await auth.createUserWithEmailAndPassword(regEmail, regPassword);
+        const userCredential = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
+        const authUser = userCredential.user;
 
         if (authUser) {
             const newUserForFirestore: Omit<User, 'id' | 'password'> = {
@@ -163,7 +167,6 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
             await db.createUserProfile(authUser.uid, newUserForFirestore);
             addToast('Welcome!', 'Registration successful!', 'success');
             setIsRegisterModalOpen(false);
-            // onAuthStateChanged will handle login
         } else {
             throw new Error("Could not create user account.");
         }
@@ -177,17 +180,14 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setResetMessage('');
     setIsSendingReset(true);
     try {
-        // FIX: Using compat namespaced API `auth.sendPasswordResetEmail` instead of modular `sendPasswordResetEmail(auth, ...)`.
-        await auth.sendPasswordResetEmail(resetEmail);
-        addToast('Email Sent', 'If an account exists, a password reset link has been sent.', 'success');
+        await sendPasswordResetEmail(auth, resetEmail);
+        addToast('Email Sent', 'If an account exists, a reset link has been sent.', 'success');
         setResetEmail('');
         setIsForgotPasswordModalOpen(false);
     } catch (err: any) {
-        console.error(err);
-        addToast('Error', 'Could not send reset email. Please try again.', 'error');
+        addToast('Error', 'Could not send reset email.', 'error');
     } finally {
         setIsSendingReset(false);
     }
@@ -222,11 +222,10 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
             <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Set Admin Key<span className="text-red-500">*</span></label>
                 <div className="relative">
-                    <input type={showRegAdminKey ? 'text' : 'password'} name="adminKey" value={regAdminKey} onChange={(e) => setRegAdminKey(e.target.value)} required placeholder="Create a secret key for admin actions" className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text pr-10" />
+                    <input type={showRegAdminKey ? 'text' : 'password'} name="adminKey" value={regAdminKey} onChange={(e) => setRegAdminKey(e.target.value)} required placeholder="Secret key for admin setup" className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green text-brand-text pr-10" />
                     <PasswordToggleIcon show={showRegAdminKey} onToggle={() => setShowRegAdminKey(!showRegAdminKey)} />
                 </div>
             </div>
-            
             <button type="submit" disabled={isSubmitting} className="w-full bg-brand-green text-white font-bold py-3 rounded-lg hover:bg-brand-green-dark transition-colors disabled:bg-gray-400 mt-6">
               {isSubmitting ? 'Creating Account...' : 'Create Admin Account'}
             </button>
@@ -248,33 +247,15 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green"
-                required 
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green" required />
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-gray-600">Password</label>
-                <button 
-                  type="button"
-                  onClick={() => setIsForgotPasswordModalOpen(true)}
-                  className="text-sm text-gray-500 hover:text-brand-green hover:underline focus:outline-none"
-                >
-                    Forgot Password?
-                </button>
+                <button type="button" onClick={() => setIsForgotPasswordModalOpen(true)} className="text-sm text-gray-500 hover:text-brand-green hover:underline focus:outline-none">Forgot Password?</button>
               </div>
               <div className="relative">
-                <input 
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)} 
-                  className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green pr-10"
-                  required
-                />
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green pr-10" required />
                 <PasswordToggleIcon show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
               </div>
             </div>
@@ -283,9 +264,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
             </button>
           </form>
           <div className="text-center mt-6">
-            <button onClick={() => setIsRegisterModalOpen(true)} className="text-sm text-brand-green hover:underline disabled:text-gray-400">
-              New here? Register now
-            </button>
+            <button onClick={() => setIsRegisterModalOpen(true)} className="text-sm text-brand-green hover:underline disabled:text-gray-400">New here? Register now</button>
           </div>
           <p className="text-center mt-8 text-xs text-gray-400">Powered By: Cicadas IT Solutions</p>
       </div>
@@ -310,36 +289,13 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
               </div>
           </form>
       </Modal>
-      <Modal 
-        isOpen={isForgotPasswordModalOpen} 
-        onClose={() => setIsForgotPasswordModalOpen(false)} 
-        title="Reset Your Password"
-      >
-        <p className="text-gray-600 mb-4">
-            Enter the email address associated with your account, and we'll send you a link to reset your password.
-        </p>
+      <Modal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} title="Reset Password">
+        <p className="text-gray-600 mb-4">Enter your email for a password reset link.</p>
         <form onSubmit={handlePasswordReset} className="space-y-4">
-            <Input 
-                label="Email Address" 
-                type="email" 
-                name="resetEmail" 
-                value={resetEmail} 
-                onChange={(e) => setResetEmail(e.target.value)} 
-                required 
-            />
+            <Input label="Email Address" type="email" name="resetEmail" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 pt-2 gap-2">
-                <button 
-                    type="button" 
-                    onClick={() => setIsForgotPasswordModalOpen(false)} 
-                    className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300"
-                >
-                    Cancel
-                </button>
-                <button 
-                    type="submit" 
-                    disabled={isSendingReset} 
-                    className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark disabled:bg-gray-400"
-                >
+                <button type="button" onClick={() => setIsForgotPasswordModalOpen(false)} className="w-full sm:w-auto bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button type="submit" disabled={isSendingReset} className="w-full sm:w-auto bg-brand-green text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-green-dark disabled:bg-gray-400">
                     {isSendingReset ? 'Sending...' : 'Send Reset Email'}
                 </button>
             </div>
