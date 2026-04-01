@@ -89,7 +89,7 @@ const RepairDetailsModal = ({ repair, onClose, contact }: { repair: Repair | nul
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
                        {repair.imageUrls.map((url, index) => (
                            <a key={index} href={url} target="_blank" rel="noopener noreferrer">
-                             <img src={url} alt={`Repair attachment ${index + 1}`} className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity" />
+                             <img src={url} alt={`Repair attachment ${index + 1}`} className="w-full h-32 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity" referrerPolicy="no-referrer" />
                            </a>
                        ))}
                    </div>
@@ -375,7 +375,7 @@ const Repairs: React.FC<RepairsProps> = ({ repairs, contacts, currentUser, onCre
                             <div className="grid grid-cols-4 gap-4 mt-4">
                                 {formData.imageUrls.map((url, index) => (
                                     <div key={index} className="relative">
-                                        <img src={url} alt={`Preview ${index}`} className="w-full h-24 object-cover rounded-lg border" />
+                                        <img src={url} alt={`Preview ${index}`} className="w-full h-24 object-cover rounded-lg border" referrerPolicy="no-referrer" />
                                         <button type="button" onClick={() => handleRemoveImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600">
                                             <CloseIcon className="w-4 h-4" />
                                         </button>

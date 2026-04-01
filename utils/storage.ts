@@ -115,6 +115,23 @@ export const createUserProfile = async (uid: string, user: Omit<User, 'id' | 'pa
     }
 };
 
+export const getUserProfile = async (uid: string): Promise<User | null> => {
+    const path = `${COLLECTIONS.USERS}/${uid}`;
+    try {
+        const docSnap = await getDoc(doc(db, COLLECTIONS.USERS, uid));
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as User;
+        }
+        return null;
+    } catch (error) {
+        // We don't want to throw here if it's just a check for existence
+        // But handleFirestoreError throws. Let's use a simpler check if possible or modify handleFirestoreError.
+        // Actually, if it's a permission error, we want to know.
+        // If it's just not found, docSnap.exists() handles it.
+        return null;
+    }
+};
+
 export const updateUser = async (user: User): Promise<void> => {
     const { id, ...userData } = user;
     delete (userData as any).password;

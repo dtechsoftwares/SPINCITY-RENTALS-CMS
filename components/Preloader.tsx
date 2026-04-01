@@ -11,6 +11,7 @@ const Preloader: React.FC<PreloaderProps> = ({ splashLogo }) => (
             src={splashLogo || defaultLogoBase64} 
             alt="Spin City Rentals Logo" 
             className="w-80 h-auto object-contain" 
+            referrerPolicy="no-referrer"
         />
         <p className="text-2xl text-white mt-6">Customer Management Service</p>
     </div>

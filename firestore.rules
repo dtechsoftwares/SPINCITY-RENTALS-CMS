@@ -50,8 +50,11 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
-          (request.auth.token.email == "dtechsoftwaress@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin') ||
+          (request.auth.token.email == "dtechsoftwaress@gmail.com" && request.auth.token.email_verified == true) ||
+          (!exists(/databases/$(database)/documents/settings/public) || !get(/databases/$(database)/documents/settings/public).data.is_initialized)
+        );
     }
 
     function hasRequiredFields(fields) {
@@ -96,7 +99,7 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
       allow delete: if isAdmin();

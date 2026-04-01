@@ -816,7 +816,7 @@
             <nav>
                 <a href="index.html" class="logo">
                     <div class="logo-img">
-                        <img src="spin-city-rentals-logo.svg" alt="Spin City Rentals Logo" style="height: 50px; width: auto;">
+                        <img src="spin-city-rentals-logo.svg" alt="Spin City Rentals Logo" style="height: 50px; width: auto;" referrerPolicy="no-referrer">
                     </div>
                     <div class="logo-text">
                         <div class="business-name">Spin City Rentals</div>
@@ -1267,7 +1267,7 @@
                 const previewItem = document.createElement('div');
                 previewItem.className = 'image-preview-item';
                 previewItem.innerHTML = `
-                    <img src="${imageData.base64}" alt="${imageData.name}">
+                    <img src="${imageData.base64}" alt="${imageData.name}" referrerpolicy="no-referrer">
                     <button type="button" class="remove-image" data-index="${index}" title="Remove image">
                         <i class="fas fa-times"></i>
                     </button>
@@ -1408,7 +1408,7 @@
                     htmlBody += `
                         <div style="margin-bottom: 20px;">
                             <p><strong>${image.name}</strong></p>
-                            <img src="${image.base64}" alt="${image.name}" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px;">
+                            <img src="${image.base64}" alt="${image.name}" style="max-width: 100%; border: 1px solid #ddd; border-radius: 5px;" referrerpolicy="no-referrer">
                         </div>
                     `;
                 });

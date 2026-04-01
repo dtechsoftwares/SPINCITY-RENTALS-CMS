@@ -172,7 +172,7 @@ const HtmlViewer: React.FC = () => {
                     </div>
                     <div className="w-full flex-1 bg-white p-4 rounded-lg border border-gray-300 overflow-y-auto">
                         {htmlContent ? (
-                            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                            <div dangerouslySetInnerHTML={{ __html: htmlContent.replace(/<img/gi, '<img referrerpolicy="no-referrer"') }} />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">
                                 <p>Preview will appear here...</p>

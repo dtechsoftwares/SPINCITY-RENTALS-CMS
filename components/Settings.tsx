@@ -176,7 +176,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <h2 className="text-2xl font-bold border-b border-gray-200 pb-2 mb-6">Branding</h2>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
                          {logoPreview ? (
-                            <img src={logoPreview} alt="Logo Preview" className="w-20 h-20 rounded-lg object-contain bg-white p-2 border-2 border-gray-300" />
+                            <img src={logoPreview} alt="Logo Preview" className="w-20 h-20 rounded-lg object-contain bg-white p-2 border-2 border-gray-300" referrerPolicy="no-referrer" />
                          ) : (
                             <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-300">
                                 <p className="text-xs text-center text-gray-500">Default Logo</p>
@@ -200,7 +200,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <h2 className="text-2xl font-bold border-b border-gray-200 pb-2 mb-6">Splash Screen</h2>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
                          {splashLogoPreview ? (
-                            <img src={splashLogoPreview} alt="Splash Logo Preview" className="w-20 h-20 rounded-lg object-contain bg-white p-2 border-2 border-gray-300" />
+                            <img src={splashLogoPreview} alt="Splash Logo Preview" className="w-20 h-20 rounded-lg object-contain bg-white p-2 border-2 border-gray-300" referrerPolicy="no-referrer" />
                          ) : (
                             <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-300">
                                 <p className="text-xs text-center text-gray-500">Default Logo</p>

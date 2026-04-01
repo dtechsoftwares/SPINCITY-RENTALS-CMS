@@ -64,16 +64,16 @@ const Header: React.FC<HeaderProps> = ({ viewName, user, onMenuClick, onSearch }
                     <p className="font-semibold text-brand-text text-sm leading-tight">{user.name}</p>
                     <p className="text-xs text-gray-500 uppercase font-bold tracking-tighter">{user.role}</p>
                 </div>
-                <img src={user.avatar} alt="User" className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-green ring-offset-2" />
+                <img src={user.avatar} alt="User" className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-green ring-offset-2" referrerPolicy="no-referrer" />
             </div>
         </header>
     );
 };
 
 const App: React.FC = () => {
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [publicSettingsLoaded, setPublicSettingsLoaded] = useState(false);
+  const [privateSettingsLoaded, setPrivateSettingsLoaded] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [isSettingsInitialised, setIsSettingsInitialised] = useState(false);
   
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
   
@@ -101,6 +101,7 @@ const App: React.FC = () => {
   const toastId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const dataUnsubRef = useRef<(() => void) | null>(null);
 
   const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
   const [siteRentals, setSiteRentals] = useState<SiteRental[]>([]);
@@ -128,7 +129,7 @@ const App: React.FC = () => {
       return await action();
     } catch (error) {
       console.error("Action error:", error);
-      addToast('Error', 'Action failed. Check Supabase connection.', 'error');
+      addToast('Error', 'Action failed. Check connection.', 'error');
     } finally {
       setIsActionLoading(false);
     }
@@ -145,10 +146,8 @@ const App: React.FC = () => {
 
   const handleLogout = useCallback(() => handleAction(async () => { await signOut(auth); }), [handleAction]);
 
-  const fetchPublicSettings = async () => {
-    try {
-        const docRef = doc(firestore, 'settings', 'public');
-        const docSnap = await getDoc(docRef);
+  useEffect(() => {
+    const unsub = onSnapshot(doc(firestore, 'settings', 'public'), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             setAppLogo(data.app_logo || null);
@@ -157,38 +156,17 @@ const App: React.FC = () => {
         } else {
             setIsInitialized(false);
         }
-    } catch (e) {
-        console.error("Error fetching public settings:", e);
+        setPublicSettingsLoaded(true);
+    }, (error) => {
+        console.error("Error listening to public settings:", error);
         setIsInitialized(false);
-    } finally {
-        setIsSettingsInitialised(true);
-    }
-  };
-
-  const fetchPrivateSettings = async () => {
-    if (!currentUser) return;
-    try {
-        const docRef = doc(firestore, 'settings', 'private');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            setAdminKey(data.admin_key || 'admin');
-            setSmsSettings(data.sms_settings || { accountSid: '', authToken: '', twilioPhoneNumber: '' });
-            setNotificationSettings(data.notification_settings || { smsEnabled: true, emailEnabled: true });
-        }
-        setSettingsLoaded(true);
-    } catch (e) {
-        console.error("Error fetching private settings:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchPublicSettings();
+        setPublicSettingsLoaded(true);
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {
     if (currentUser) {
-        fetchPrivateSettings();
         const unsub = onSnapshot(doc(firestore, 'settings', 'private'), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -196,20 +174,31 @@ const App: React.FC = () => {
                 setSmsSettings(data.sms_settings || { accountSid: '', authToken: '', twilioPhoneNumber: '' });
                 setNotificationSettings(data.notification_settings || { smsEnabled: true, emailEnabled: true });
             }
+            setPrivateSettingsLoaded(true);
+        }, (error) => {
+            console.error("Error listening to private settings:", error);
+            setPrivateSettingsLoaded(true);
         });
         return () => unsub();
     } else {
-        setSettingsLoaded(false);
+        setPrivateSettingsLoaded(true);
     }
   }, [currentUser]);
 
   const fetchAllData = (isAdmin: boolean) => {
+    if (dataUnsubRef.current) {
+        dataUnsubRef.current();
+        dataUnsubRef.current = null;
+    }
+
     const unsubscribes: (() => void)[] = [];
 
     const setupListener = (colName: string, setter: (data: any[]) => void, orderField: string, ascending: boolean = false) => {
         const q = query(collection(firestore, colName), orderBy(orderField, ascending ? 'asc' : 'desc'));
         const unsub = onSnapshot(q, (snapshot) => {
             setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }, (error) => {
+            console.error(`Error listening to ${colName}:`, error);
         });
         unsubscribes.push(unsub);
     };
@@ -229,35 +218,48 @@ const App: React.FC = () => {
         setupListener('repair_requests', setSiteRepairs, 'submission_date');
     }
 
-    return () => unsubscribes.forEach(unsub => unsub());
+    dataUnsubRef.current = () => unsubscribes.forEach(unsub => unsub());
   };
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+    let unsubProfile: (() => void) | null = null;
+    
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+        if (unsubProfile) {
+            unsubProfile();
+            unsubProfile = null;
+        }
+
         if (user) {
-            try {
-                const docRef = doc(firestore, 'users', user.uid);
-                const docSnap = await getDoc(docRef);
+            unsubProfile = onSnapshot(doc(firestore, 'users', user.uid), (docSnap) => {
                 if (docSnap.exists()) {
                     const profile = { id: docSnap.id, ...docSnap.data() } as User;
                     setCurrentUser(profile);
-                    const unsubData = fetchAllData(profile.role === 'Admin');
-                    return () => {
-                        unsubData();
-                    };
+                    fetchAllData(profile.role === 'Admin');
+                } else {
+                    setCurrentUser(null);
                 }
-            } catch (err) {
-                console.error("Error fetching user profile:", err);
-            }
+                setAuthChecked(true);
+            }, (error) => {
+                console.error("Error listening to user profile:", error);
+                setAuthChecked(true);
+            });
         } else {
             setCurrentUser(null);
+            if (dataUnsubRef.current) {
+                dataUnsubRef.current();
+                dataUnsubRef.current = null;
+            }
+            setAuthChecked(true);
         }
-        setAuthChecked(true);
     });
-    return () => unsubAuth();
-  }, []);
 
-  useEffect(() => { if (isSettingsInitialised) setSettingsLoaded(true); }, [isSettingsInitialised]);
+    return () => {
+        unsubAuth();
+        if (unsubProfile) unsubProfile();
+        if (dataUnsubRef.current) dataUnsubRef.current();
+    };
+  }, []);
 
   const handleUpdateFirebaseStatus = (id: string, type: string, newStatus: string) => {
     let table = type === 'contact' ? 'contact_submissions' : type === 'rental' ? 'rental_agreements' : 'repair_requests';
@@ -306,12 +308,14 @@ const App: React.FC = () => {
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
-  if (!authChecked || !isSettingsInitialised || !settingsLoaded) {
-    return (<> <Preloader splashLogo={splashLogo} /> <div className="fixed bottom-4 right-4 text-xs text-white z-[10000]">v3.1-Stable</div> </>);
+  const isLoaded = authChecked && publicSettingsLoaded && privateSettingsLoaded;
+
+  if (!isLoaded) {
+    return (<> <Preloader splashLogo={splashLogo || appLogo} /> <div className="fixed bottom-4 right-4 text-xs text-white z-[10000]">v3.1-Stable</div> </>);
   }
 
   if (!currentUser) {
-    return (<> <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} isSystemInitialized={isInitialized} /> <ToastContainer toasts={toasts} removeToast={removeToast} /> </>);
+    return (<> <Login adminKey={adminKey} splashLogo={splashLogo || appLogo} addToast={addToast} initialError={loginError} isSystemInitialized={isInitialized} /> <ToastContainer toasts={toasts} removeToast={removeToast} /> </>);
   }
 
   const filteredContacts = contacts.filter(c => c.fullName.toLowerCase().includes(searchTerm.toLowerCase()));

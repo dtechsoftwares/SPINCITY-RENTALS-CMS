@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
       <div className="p-6 flex items-center space-x-3 flex-shrink-0">
         <div className="bg-brand-green p-2 rounded-lg flex justify-center items-center w-12 h-12">
           {appLogo ? (
-            <img src={appLogo} alt="App Logo" className="w-8 h-8 object-contain" />
+            <img src={appLogo} alt="App Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
           ) : (
             <svg className="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3 1m-3-1l-3-1m3 1v5.25m-3-5.25v5.25m-3-5.25l3 1m-3-1l-3 1m0 0v5.25m0 0l3 1m-3-1l-3-1" />

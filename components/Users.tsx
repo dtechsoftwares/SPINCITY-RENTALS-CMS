@@ -34,6 +34,7 @@ const UserDetailsModal = ({ user, onClose }: { user: User | null; onClose: () =>
             src={user.avatar}
             alt={user.name}
             className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md"
+            referrerPolicy="no-referrer"
           />
           <div className="text-center">
             <h3 className="text-2xl font-bold text-brand-text">{user.name}</h3>
@@ -159,7 +160,7 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
                 {users.map(user => (
                     <li key={user.id} className="py-4 flex flex-col sm:flex-row items-center gap-4">
                         <div className="flex items-center space-x-4 flex-grow self-start sm:self-center">
-                            <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover" />
+                            <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover" referrerPolicy="no-referrer" />
                             <div className="flex-1">
                                 <p className="font-bold text-lg">{user.name}{user.id === currentUser.id && " (You)"}</p>
                                 <p className="text-sm text-gray-500 break-all">{user.email}</p>
@@ -206,6 +207,7 @@ const Users: React.FC<UsersProps> = ({ users, currentUser, onUpdateUser, onDelet
                         src={formData.avatar || 'https://via.placeholder.com/80'} 
                         alt="Avatar Preview" 
                         className="w-20 h-20 rounded-full object-cover border-2 border-gray-200" 
+                        referrerPolicy="no-referrer"
                     />
                     <input 
                         type="file" 
