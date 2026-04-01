@@ -1151,19 +1151,19 @@
         // FIREBASE CONFIGURATION
         // ==========================================================
         const FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBjoBK7feqbPzON8BoOZNo4UQ3xbt5ZgkM",
-            authDomain: "spincityrentalsnew.firebaseapp.com",
-            projectId: "spincityrentalsnew",
-            storageBucket: "spincityrentalsnew.firebasestorage.app",
-            messagingSenderId: "252954471415",
-            appId: "1:252954471415:web:01a747ebf09fb92d645cf2"
+            apiKey: "AIzaSyCqrfhQdhdkBJ-vgeQCrjVhAYaG8pu62ZM",
+            authDomain: "gen-lang-client-0752131396.firebaseapp.com",
+            projectId: "gen-lang-client-0752131396",
+            storageBucket: "gen-lang-client-0752131396.firebasestorage.app",
+            messagingSenderId: "1021433690288",
+            appId: "1:1021433690288:web:dddb7e93420b24440f2375"
         };
 
         // Initialize Firebase
         let firestore;
         try {
             const app = initializeApp(FIREBASE_CONFIG);
-            firestore = getFirestore(app);
+            firestore = getFirestore(app, "ai-studio-33e3337e-51a7-44b1-81ef-4b081ea48dd9");
             console.log("Firebase initialized successfully");
         } catch (error) {
             console.warn("Firebase initialization failed:", error);

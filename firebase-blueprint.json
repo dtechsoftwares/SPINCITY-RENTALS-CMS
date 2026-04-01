@@ -1,0 +1,285 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["Admin", "User"] },
+        "avatar": { "type": "string" }
+      },
+      "required": ["name", "email", "role", "avatar"]
+    },
+    "LogEntry": {
+      "title": "LogEntry",
+      "description": "Activity log entry",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "adminName": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "actionType": { "type": "string", "enum": ["CREATE", "UPDATE", "DELETE"] },
+        "entity": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["timestamp", "adminName", "adminEmail", "actionType", "entity", "details"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "Client contact information",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "plan": { "type": "string" },
+        "hookupType": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "phone", "address", "plan", "hookupType", "createdAt"]
+    },
+    "Rental": {
+      "title": "Rental",
+      "description": "Rental agreement details",
+      "type": "object",
+      "properties": {
+        "contactId": { "type": "string" },
+        "inventoryItemId": { "type": "string" },
+        "plan": { "type": "string" },
+        "maintenanceOption": { "type": "string" },
+        "status": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "monthlyRate": { "type": "number" },
+        "rentalPropertyAddress": { "type": "string" },
+        "emergencyContactFullName": { "type": "string" },
+        "emergencyContactRelationship": { "type": "string" },
+        "emergencyContactAddress": { "type": "string" },
+        "emergencyContactEmail": { "type": "string" },
+        "emergencyContactPhone": { "type": "string" },
+        "deliveryPaymentOption": { "type": "string" },
+        "ackPaymentTerms": { "type": "boolean" },
+        "ackRelocationTerms": { "type": "boolean" },
+        "ackAdditionalTerms": { "type": "boolean" },
+        "renterPrintedName": { "type": "string" },
+        "digitalSignature": { "type": "string" }
+      },
+      "required": ["contactId", "plan", "maintenanceOption", "status", "startDate", "monthlyRate", "rentalPropertyAddress", "renterPrintedName", "digitalSignature"]
+    },
+    "Repair": {
+      "title": "Repair",
+      "description": "Repair request details",
+      "type": "object",
+      "properties": {
+        "contactId": { "type": "string" },
+        "appliance": { "type": "string" },
+        "issueDescription": { "type": "string" },
+        "status": { "type": "string" },
+        "reportedDate": { "type": "string", "format": "date-time" },
+        "accountNumber": { "type": "string" },
+        "serviceAddress": { "type": "string" },
+        "city": { "type": "string" },
+        "zipCode": { "type": "string" },
+        "issueType": { "type": "string" },
+        "errorCodes": { "type": "string" },
+        "urgency": { "type": "string" },
+        "preferredServiceDate": { "type": "string" },
+        "preferredTimeOfDay": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "additionalInfo": { "type": "string" },
+        "accessInstructions": { "type": "string" },
+        "scheduledDate": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["contactId", "appliance", "issueDescription", "status", "reportedDate", "serviceAddress", "city", "zipCode", "issueType", "urgency", "preferredTimeOfDay"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Inventory item details",
+      "type": "object",
+      "properties": {
+        "purchaseId": { "type": "string" },
+        "purchaseDate": { "type": "string", "format": "date" },
+        "vendor": { "type": "string" },
+        "itemType": { "type": "string" },
+        "makeModel": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "condition": { "type": "string" },
+        "purchaseCost": { "type": "number" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["purchaseId", "purchaseDate", "vendor", "itemType", "makeModel", "serialNumber", "condition", "purchaseCost", "status"]
+    },
+    "Vendor": {
+      "title": "Vendor",
+      "description": "Vendor information",
+      "type": "object",
+      "properties": {
+        "vendorId": { "type": "string" },
+        "vendorName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "address": { "type": "string" },
+        "website": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["vendorId", "vendorName", "contactPerson", "phone", "email", "address"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sale record",
+      "type": "object",
+      "properties": {
+        "saleId": { "type": "string" },
+        "saleDate": { "type": "string", "format": "date" },
+        "itemId": { "type": "string" },
+        "salePrice": { "type": "number" },
+        "buyerName": { "type": "string" },
+        "buyerContact": { "type": "string" },
+        "buyerEmail": { "type": "string", "format": "email" },
+        "buyerAddress": { "type": "string" },
+        "billOfSaleLink": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["saleId", "saleDate", "itemId", "salePrice", "buyerName", "buyerContact", "buyerEmail", "buyerAddress", "billOfSaleLink"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "admin_key": { "type": "string" },
+        "app_logo": { "type": "string" },
+        "splash_logo": { "type": "string" },
+        "sms_settings": { "type": "object" },
+        "notification_settings": { "type": "object" }
+      }
+    },
+    "SiteContact": {
+      "title": "SiteContact",
+      "description": "Contact submission from site",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "plan": { "type": "string" },
+        "hookups": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "SiteRental": {
+      "title": "SiteRental",
+      "description": "Rental agreement from site",
+      "type": "object",
+      "properties": {
+        "Renter_Verified_Email": { "type": "string" },
+        "lessee_name": { "type": "string" },
+        "renter_name": { "type": "string" },
+        "property_address": { "type": "string" },
+        "selected_plan": { "type": "string" },
+        "emergency_name": { "type": "string" },
+        "emergency_relationship": { "type": "string" },
+        "emergency_address": { "type": "string" },
+        "emergency_email": { "type": "string" },
+        "emergency_phone": { "type": "string" },
+        "delivery_payment": { "type": "string" },
+        "maintenance_option": { "type": "string" },
+        "payment_terms_acknowledged": { "type": "string" },
+        "relocation_terms_acknowledged": { "type": "string" },
+        "additional_terms_acknowledged": { "type": "string" },
+        "signature_name": { "type": "string" },
+        "signature_date": { "type": "string" },
+        "digital_signature": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "SiteRepair": {
+      "title": "SiteRepair",
+      "description": "Repair request from site",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "serviceAddress": { "type": "string" },
+        "serviceCity": { "type": "string" },
+        "serviceZip": { "type": "string" },
+        "applianceType": { "type": "string" },
+        "applianceAge": { "type": "string" },
+        "issueType": { "type": "string" },
+        "issueDescription": { "type": "string" },
+        "errorCodes": { "type": "string" },
+        "urgency": { "type": "string" },
+        "preferredDate": { "type": "string" },
+        "preferredTime": { "type": "string" },
+        "additionalInfo": { "type": "string" },
+        "specialInstructions": { "type": "string" },
+        "imageCount": { "type": "number" },
+        "imageNames": { "type": "array", "items": { "type": "string" } },
+        "submissionDate": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/activity_logs/{logId}": {
+      "schema": "LogEntry",
+      "description": "Activity logs"
+    },
+    "/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Contacts"
+    },
+    "/rentals/{rentalId}": {
+      "schema": "Rental",
+      "description": "Rentals"
+    },
+    "/repairs/{repairId}": {
+      "schema": "Repair",
+      "description": "Repairs"
+    },
+    "/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Inventory"
+    },
+    "/vendors/{vendorId}": {
+      "schema": "Vendor",
+      "description": "Vendors"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales"
+    },
+    "/settings/{settingsId}": {
+      "schema": "Settings",
+      "description": "Global settings"
+    },
+    "/contact_submissions/{submissionId}": {
+      "schema": "SiteContact",
+      "description": "Site contact submissions"
+    },
+    "/rental_agreements/{agreementId}": {
+      "schema": "SiteRental",
+      "description": "Site rental agreements"
+    },
+    "/repair_requests/{requestId}": {
+      "schema": "SiteRepair",
+      "description": "Site repair requests"
+    }
+  }
+}

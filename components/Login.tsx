@@ -3,14 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { CloseIcon } from './Icons';
 import * as db from '../utils/storage';
-import { auth, db as firestoreDb } from '../utils/firebase';
-import { collection, query, limit, getDocs } from 'firebase/firestore';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { auth, db as firestore } from '../utils/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { defaultLogoBase64 } from '../assets/default-logo';
 
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children?: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
       <div className="bg-white text-brand-text w-full max-w-md rounded-xl shadow-2xl border border-gray-200">
@@ -56,9 +55,10 @@ interface LoginProps {
   splashLogo: string | null;
   addToast: (title: string, message: string, type: 'success' | 'info' | 'error') => void;
   initialError?: string;
+  isSystemInitialized: boolean | null;
 }
 
-const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialError }) => {
+const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialError, isSystemInitialized }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -67,12 +67,10 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
   const [showPassword, setShowPassword] = useState(false);
   const [isFirstUser, setIsFirstUser] = useState<boolean | null>(null);
 
-  // Password Reset state
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
 
-  // Registration state
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -82,26 +80,14 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
   const [showRegAdminKey, setShowRegAdminKey] = useState(false);
   
   useEffect(() => {
-    if (initialError) {
-        setError(initialError);
-    }
+    if (initialError) setError(initialError);
   }, [initialError]);
 
   useEffect(() => {
-    const checkFirstUser = async () => {
-        try {
-            const usersCollectionRef = collection(firestoreDb, 'users');
-            const q = query(usersCollectionRef, limit(1));
-            const usersSnapshot = await getDocs(q);
-            setIsFirstUser(usersSnapshot.empty);
-        } catch (err: any) {
-            // If permission denied, it means rules are working (auth required), 
-            // so we can conclude users exist and the system is initialized.
-            setIsFirstUser(false);
-        }
-    };
-    checkFirstUser();
-  }, []);
+    if (isSystemInitialized !== null) {
+        setIsFirstUser(!isSystemInitialized);
+    }
+  }, [isSystemInitialized]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,27 +97,7 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
-        switch (err.code) {
-            case 'auth/user-not-found':
-                setError('No account found with that email. Please check for typos or register.');
-                break;
-            case 'auth/wrong-password':
-                setError('Incorrect password. Please try again.');
-                break;
-            case 'auth/invalid-email':
-                setError('Invalid email address.');
-                break;
-            case 'auth/user-disabled':
-                 setError('This user account has been disabled.');
-                 break;
-            case 'auth/invalid-credential':
-            case 'auth/invalid-login-credentials':
-                setError('Invalid email or password.');
-                break;
-            default:
-                setError('An unexpected error occurred during login.');
-                break;
-        }
+        setError(err.message || 'An unexpected error occurred during login.');
     } finally {
         setIsSubmitting(false);
     }
@@ -143,32 +109,27 @@ const Login: React.FC<LoginProps> = ({ adminKey, splashLogo, addToast, initialEr
     setIsSubmitting(true);
     
     try {
-        if (regPassword.length < 6) {
-            throw new Error("Password should be at least 6 characters.");
-        }
+        if (regPassword.length < 6) throw new Error("Password should be at least 6 characters.");
         
         if (isFirstUser) {
-            if (regAdminKey.length < 4) {
-                throw new Error('Admin Key must be at least 4 characters long.');
-            }
+            if (regAdminKey.length < 4) throw new Error('Admin Key must be at least 4 characters long.');
             await db.saveAdminKey(regAdminKey);
         }
         
         const userCredential = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
-        const authUser = userCredential.user;
+        const user = userCredential.user;
 
-        if (authUser) {
-            const newUserForFirestore: Omit<User, 'id' | 'password'> = {
+        if (user) {
+            await updateProfile(user, { displayName: regName });
+            const newUser: Omit<User, 'id' | 'password'> = {
                 name: regName,
                 email: regEmail,
                 role: isFirstUser ? 'Admin' : 'User',
-                avatar: `https://i.pravatar.cc/80?u=${authUser.uid}`
+                avatar: `https://i.pravatar.cc/80?u=${user.uid}`
             };
-            await db.createUserProfile(authUser.uid, newUserForFirestore);
+            await db.createUserProfile(user.uid, newUser);
             addToast('Welcome!', 'Registration successful!', 'success');
             setIsRegisterModalOpen(false);
-        } else {
-            throw new Error("Could not create user account.");
         }
 
     } catch (err: any) {

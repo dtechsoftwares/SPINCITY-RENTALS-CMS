@@ -20,9 +20,9 @@ import HtmlViewer from './components/HtmlViewer';
 import ActivityLogs from './components/ActivityLogs';
 import AiAssistant from './components/AiAssistant';
 import * as db from './utils/storage';
-import { auth, db as firestoreDb } from './utils/firebase';
-import { collection, doc, onSnapshot, query, orderBy, getDoc, updateDoc, deleteDoc, DocumentSnapshot } from 'firebase/firestore';
+import { auth, db as firestore } from './utils/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onSnapshot, collection, query, orderBy, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Spinner from './components/Spinner';
 import ToastContainer, { ToastMessage } from './components/Toasts';
 
@@ -75,6 +75,8 @@ const App: React.FC = () => {
   const [authChecked, setAuthChecked] = useState(false);
   const [isSettingsInitialised, setIsSettingsInitialised] = useState(false);
   
+  const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
+  
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [currentView, setCurrentView] = useState<AppView>(AppView.Dashboard);
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,16 +100,12 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const toastId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const unsubscribersRef = useRef<(() => void)[]>([]);
   const [loginError, setLoginError] = useState('');
 
   const [siteContacts, setSiteContacts] = useState<SiteContact[]>([]);
   const [siteRentals, setSiteRentals] = useState<SiteRental[]>([]);
   const [siteRepairs, setSiteRepairs] = useState<SiteRepair[]>([]);
   
-  const initialLoad = useRef({ contacts: true, rentals: true, repairs: true });
-  const processedDocIds = useRef(new Set<string>());
-
   useEffect(() => {
     const win = window as any;
     if (win.emailjs) {
@@ -130,7 +128,7 @@ const App: React.FC = () => {
       return await action();
     } catch (error) {
       console.error("Action error:", error);
-      addToast('Error', 'Action failed. Check network or permissions.', 'error');
+      addToast('Error', 'Action failed. Check Supabase connection.', 'error');
     } finally {
       setIsActionLoading(false);
     }
@@ -142,317 +140,178 @@ const App: React.FC = () => {
           if (!currentUser) return;
           const logData = { timestamp: new Date().toISOString(), adminName: currentUser.name, adminEmail: currentUser.email, actionType, entity, details };
           await db.createLogEntry(logData);
-          const emailJS = (window as any).emailjs;
-          if (emailJS) {
-              const params = { to_email: 'developer@dtechsoftwares.com', from_name: currentUser.name, from_email: currentUser.email, subject: `[CMS Log] ${actionType} ${entity}`, action_type: actionType, entity, admin_name: currentUser.name, admin_email: currentUser.email, timestamp: new Date().toLocaleString(), details, message: details };
-              emailJS.send(EMAILJS_CONFIG.SERVICE_ID, EMAILJS_CONFIG.LOG_TEMPLATE_ID, params, EMAILJS_CONFIG.PUBLIC_KEY).catch((e: any) => console.error("EmailJS Error:", e));
-          }
       } catch (error) { console.error("Logging error:", error); }
   }, [currentUser]);
 
   const handleLogout = useCallback(() => handleAction(async () => { await signOut(auth); }), [handleAction]);
 
-  useEffect(() => {
-      const settingsRef = doc(firestoreDb, 'settings', 'main');
-      const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
-          if (docSnap.exists()) {
-              const data = docSnap.data();
-              setAppLogo(data.appLogo || null); 
-              setSplashLogo(data.splashLogo || null); 
-              setAdminKey(data.adminKey || 'admin'); 
-              setSmsSettings(data.smsSettings || { accountSid: '', authToken: '', twilioPhoneNumber: '' }); 
-              setNotificationSettings(data.notificationSettings || { smsEnabled: true, emailEnabled: true });
-          } else {
-              setAdminKey('admin');
-          }
-          setIsSettingsInitialised(true);
-      }, (e) => { 
-          if (e.code !== 'permission-denied') console.warn("Settings error:", e.code); 
-          setIsSettingsInitialised(true); 
-      });
-      return () => unsubscribe();
-  }, []);
+  const fetchPublicSettings = async () => {
+    try {
+        const docRef = doc(firestore, 'settings', 'public');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            setAppLogo(data.app_logo || null);
+            setSplashLogo(data.splash_logo || null);
+            setIsInitialized(data.is_initialized === true);
+        } else {
+            setIsInitialized(false);
+        }
+    } catch (e) {
+        console.error("Error fetching public settings:", e);
+        setIsInitialized(false);
+    } finally {
+        setIsSettingsInitialised(true);
+    }
+  };
 
-  const fetchUserProfileWithRetry = async (uid: string, retries = 10, delay = 800): Promise<DocumentSnapshot | null> => {
-      const userDocRef = doc(firestoreDb, 'users', uid);
-      try {
-          const snapshot = await getDoc(userDocRef);
-          if (snapshot.exists()) return snapshot;
-          throw new Error("NOT_FOUND");
-      } catch (err: any) {
-          if (retries <= 0) throw err;
-          // Retry on permission-denied as it often indicates a race condition during sign-up
-          if (err.code === 'permission-denied' || err.message === "NOT_FOUND") {
-            await new Promise(r => setTimeout(r, delay));
-            return fetchUserProfileWithRetry(uid, retries - 1, delay);
-          }
-          throw err;
-      }
+  const fetchPrivateSettings = async () => {
+    if (!currentUser) return;
+    try {
+        const docRef = doc(firestore, 'settings', 'private');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            setAdminKey(data.admin_key || 'admin');
+            setSmsSettings(data.sms_settings || { accountSid: '', authToken: '', twilioPhoneNumber: '' });
+            setNotificationSettings(data.notification_settings || { smsEnabled: true, emailEnabled: true });
+        }
+        setSettingsLoaded(true);
+    } catch (e) {
+        console.error("Error fetching private settings:", e);
+    }
   };
 
   useEffect(() => {
-    const authUnsubscriber = onAuthStateChanged(auth, async (authUser: any) => {
-        unsubscribersRef.current.forEach(unsub => unsub());
-        unsubscribersRef.current = [];
+    fetchPublicSettings();
+  }, []);
 
-        if (authUser) {
-            try {
-                const userDocSnap = await fetchUserProfileWithRetry(authUser.uid);
-                if (userDocSnap && userDocSnap.exists()) {
-                    setLoginError('');
-                    const userData = { id: userDocSnap.id, ...userDocSnap.data() } as User;
-                    setCurrentUser(userData);
-                    
-                    const isAdmin = userData.role === 'Admin';
-                    const configMap: Record<string, any> = {
-                        contacts: { setter: setContacts, orderByField: 'createdAt', orderDirection: 'desc' },
-                        rentals: { setter: setRentals, orderByField: 'startDate', orderDirection: 'desc' },
-                        repairs: { setter: setRepairs, orderByField: 'reportedDate', orderDirection: 'desc' },
-                        inventory: { setter: setInventory, orderByField: 'purchaseDate', orderDirection: 'desc' },
-                        sales: { setter: setSales, orderByField: 'saleDate', orderDirection: 'desc' },
-                        vendors: { setter: setVendors, orderByField: 'vendorName' }
-                    };
-                    
-                    if (isAdmin) {
-                        configMap.users = { setter: setUsers, orderByField: 'name' };
-                        configMap.activity_logs = { setter: setLogs, orderByField: 'timestamp', orderDirection: 'desc' };
-                    }
+  useEffect(() => {
+    if (currentUser) {
+        fetchPrivateSettings();
+        const unsub = onSnapshot(doc(firestore, 'settings', 'private'), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setAdminKey(data.admin_key || 'admin');
+                setSmsSettings(data.sms_settings || { accountSid: '', authToken: '', twilioPhoneNumber: '' });
+                setNotificationSettings(data.notification_settings || { smsEnabled: true, emailEnabled: true });
+            }
+        });
+        return () => unsub();
+    } else {
+        setSettingsLoaded(false);
+    }
+  }, [currentUser]);
 
-                    Object.entries(configMap).forEach(([collectionName, config]: [string, any]) => {
-                        const q = query(collection(firestoreDb, collectionName), orderBy(config.orderByField, config.orderDirection || 'asc'));
-                        const unsub = onSnapshot(q, (snapshot) => {
-                            const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-                            config.setter(data as any);
-                        }, (e) => console.warn(`Error in ${collectionName}:`, e.message));
-                        unsubscribersRef.current.push(unsub);
-                    });
-                    
-                    if (isAdmin) initializeSiteMonitoringListeners();
-                } else {
-                    await signOut(auth); 
-                    setLoginError('Your profile was not found. Contact administrator.');
-                }
-            } catch (error: any) {
-                console.error("Auth error:", error);
-                await signOut(auth);
-                setLoginError('Access denied or timeout. Please try again.');
-            } finally { setAuthChecked(true); }
-        } else {
-            setCurrentUser(null); 
-            setAuthChecked(true);
-            [setUsers, setContacts, setRentals, setRepairs, setInventory, setSales, setVendors, setSiteContacts, setSiteRentals, setSiteRepairs, setLogs].forEach(s => s([]));
-        }
-    });
-    return () => { 
-        authUnsubscriber(); 
-        unsubscribersRef.current.forEach(u => u()); 
+  const fetchAllData = (isAdmin: boolean) => {
+    const unsubscribes: (() => void)[] = [];
+
+    const setupListener = (colName: string, setter: (data: any[]) => void, orderField: string, ascending: boolean = false) => {
+        const q = query(collection(firestore, colName), orderBy(orderField, ascending ? 'asc' : 'desc'));
+        const unsub = onSnapshot(q, (snapshot) => {
+            setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        unsubscribes.push(unsub);
     };
-  }, []); 
+
+    setupListener('contacts', setContacts, 'created_at');
+    setupListener('rentals', setRentals, 'start_date');
+    setupListener('repairs', setRepairs, 'reported_date');
+    setupListener('inventory', setInventory, 'purchase_date');
+    setupListener('sales', setSales, 'sale_date');
+    setupListener('vendors', setVendors, 'vendor_name', true);
+
+    if (isAdmin) {
+        setupListener('users', setUsers, 'name', true);
+        setupListener('activity_logs', setLogs, 'timestamp');
+        setupListener('contact_submissions', setSiteContacts, 'timestamp');
+        setupListener('rental_agreements', setSiteRentals, 'timestamp');
+        setupListener('repair_requests', setSiteRepairs, 'submission_date');
+    }
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  };
+
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const docRef = doc(firestore, 'users', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const profile = { id: docSnap.id, ...docSnap.data() } as User;
+                    setCurrentUser(profile);
+                    const unsubData = fetchAllData(profile.role === 'Admin');
+                    return () => {
+                        unsubData();
+                    };
+                }
+            } catch (err) {
+                console.error("Error fetching user profile:", err);
+            }
+        } else {
+            setCurrentUser(null);
+        }
+        setAuthChecked(true);
+    });
+    return () => unsubAuth();
+  }, []);
 
   useEffect(() => { if (isSettingsInitialised) setSettingsLoaded(true); }, [isSettingsInitialised]);
 
-  const initializeSiteMonitoringListeners = () => {
-      const q1 = query(collection(firestoreDb, 'contactSubmissions'), orderBy('timestamp', 'desc'));
-      unsubscribersRef.current.push(onSnapshot(q1, (snap) => {
-          snap.docChanges().forEach((c) => {
-              if (c.type === 'added' && !initialLoad.current.contacts && !processedDocIds.current.has(c.doc.id)) {
-                  processedDocIds.current.add(c.doc.id); 
-                  addToast('New Site Submission', `Contact from ${c.doc.data().name}`, 'success');
-              }
-          });
-          initialLoad.current.contacts = false; 
-          setSiteContacts(snap.docs.map(d => ({ id: d.id, ...d.data(), type: 'contact' })) as any);
-      }));
-
-      const q2 = query(collection(firestoreDb, 'rentalAgreements'), orderBy('timestamp', 'desc'));
-      unsubscribersRef.current.push(onSnapshot(q2, (snap) => {
-          snap.docChanges().forEach((c) => {
-              if (c.type === 'added' && !initialLoad.current.rentals && !processedDocIds.current.has(c.doc.id)) {
-                  processedDocIds.current.add(c.doc.id); 
-                  addToast('New Site Submission', `Rental from ${c.doc.data().renter_name}`, 'success');
-              }
-          });
-          initialLoad.current.rentals = false; 
-          setSiteRentals(snap.docs.map(d => ({ id: d.id, ...d.data(), type: 'rental' })) as any);
-      }));
-
-      const q3 = query(collection(firestoreDb, 'repairRequests'), orderBy('submissionDate', 'desc'));
-      unsubscribersRef.current.push(onSnapshot(q3, (snap) => {
-          snap.docChanges().forEach((c) => {
-              if (c.type === 'added' && !initialLoad.current.repairs && !processedDocIds.current.has(c.doc.id)) {
-                  processedDocIds.current.add(c.doc.id); 
-                  addToast('New Site Submission', `Repair from ${c.doc.data().customerName}`, 'success');
-              }
-          });
-          initialLoad.current.repairs = false; 
-          setSiteRepairs(snap.docs.map(d => ({ id: d.id, ...d.data(), type: 'repair' })) as any);
-      }));
-  };
-
   const handleUpdateFirebaseStatus = (id: string, type: string, newStatus: string) => {
-    let col = type === 'contact' ? 'contactSubmissions' : type === 'rental' ? 'rentalAgreements' : 'repairRequests';
-    const action = handleAction(() => updateDoc(doc(firestoreDb, col, id), { status: newStatus }));
+    let table = type === 'contact' ? 'contact_submissions' : type === 'rental' ? 'rental_agreements' : 'repair_requests';
+    const action = handleAction(() => updateDoc(doc(firestore, table, id), { status: newStatus }));
     handleLogAction('UPDATE', 'Site Submission', `Updated status of ${type} to ${newStatus}`, action as Promise<void>);
     action.then(() => addToast('Success', `Status updated.`, 'success'));
   };
 
   const handleDeleteFirebaseSubmission = (id: string, type: string) => {
-    let col = type === 'contact' ? 'contactSubmissions' : type === 'rental' ? 'rentalAgreements' : 'repairRequests';
-    const action = handleAction(() => deleteDoc(doc(firestoreDb, col, id)));
+    let table = type === 'contact' ? 'contact_submissions' : type === 'rental' ? 'rental_agreements' : 'repair_requests';
+    const action = handleAction(() => deleteDoc(doc(firestore, table, id)));
     handleLogAction('DELETE', 'Site Submission', `Deleted ${type} submission`, action as Promise<void>);
     action.then(() => addToast('Success', `Submission deleted.`, 'success'));
   };
-  
+
+  const handleUpdateUser = (updatedUser: User) => handleAction(() => db.updateUser(updatedUser));
+  const handleDeleteUser = (userId: string) => handleAction(() => db.deleteUser(userId));
+  const handleUpdateLogo = (logo: string | null) => handleAction(() => db.saveAppLogo(logo));
+  const handleUpdateSplashLogo = (logo: string | null) => handleAction(() => db.saveSplashLogo(logo));
+  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => handleAction(() => db.createContact(newContact));
+  const handleUpdateContact = (updatedContact: Contact) => handleAction(() => db.updateContact(updatedContact));
+  const handleDeleteContact = (contactId: string) => handleAction(() => db.deleteContact(contactId));
+  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => handleAction(() => db.createRental(newRental));
+  const handleUpdateRental = (updatedRental: Rental) => handleAction(() => db.updateRental(updatedRental));
+  const handleDeleteRental = (rentalId: string) => handleAction(() => db.deleteRental(rentalId));
+  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => handleAction(() => db.createRepair(newRepair));
+  const handleUpdateRepair = (updatedRepair: Repair) => handleAction(() => db.updateRepair(updatedRepair));
+  const handleDeleteRepair = (repairId: string) => handleAction(() => db.deleteRepair(repairId));
+  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => handleAction(() => db.createInventory(newItem));
+  const handleUpdateInventory = (updatedItem: InventoryItem) => handleAction(() => db.updateInventory(updatedItem));
+  const handleDeleteInventory = (itemId: string) => handleAction(() => db.deleteInventory(itemId));
+  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => handleAction(() => db.createSale(newSale));
+  const handleUpdateSale = (updatedSale: Sale) => handleAction(() => db.updateSale(updatedSale));
+  const handleDeleteSale = (saleId: string) => handleAction(() => db.deleteSale(saleId));
+  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => handleAction(() => db.createVendor(newVendor));
+  const handleUpdateVendor = (updatedVendor: Vendor) => handleAction(() => db.updateVendor(updatedVendor));
+  const handleDeleteVendor = (vendorId: string) => handleAction(() => db.deleteVendor(vendorId));
+  const handleUpdateSmsSettings = (settings: SmsSettings) => handleAction(() => db.saveSmsSettings(settings));
+  const handleUpdateAdminKey = (key: string) => handleAction(() => db.saveAdminKey(key));
+  const handleUpdateNotificationSettings = (settings: NotificationSettings) => handleAction(() => db.saveNotificationSettings(settings));
+  const handleDeleteLog = (logId: string) => handleAction(() => db.deleteLogEntry(logId));
+
   const handleViewChange = (view: AppView) => {
     if (view === currentView) { if (window.innerWidth < 768) setIsSidebarOpen(false); return; };
     setCurrentView(view);
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
-  
-  const handleUpdateUser = (updatedUser: User) => {
-      const action = handleAction(() => db.updateUser(updatedUser));
-      handleLogAction('UPDATE', 'User', `Updated user ${updatedUser.name}`, action as Promise<void>);
-  };
-  const handleDeleteUser = (userId: string) => {
-      const action = handleAction(() => db.deleteUser(userId));
-      handleLogAction('DELETE', 'User', `Deleted user ID: ${userId}`, action as Promise<void>);
-  };
-  const handleUpdateLogo = (logo: string | null) => {
-      const action = handleAction(async () => { await db.saveAppLogo(logo); setAppLogo(logo); });
-      handleLogAction('UPDATE', 'Settings', 'Updated Application Logo', action as Promise<void>);
-  };
-  const handleUpdateSplashLogo = (logo: string | null) => {
-      const action = handleAction(async () => { await db.saveSplashLogo(logo); setSplashLogo(logo); });
-      handleLogAction('UPDATE', 'Settings', 'Updated Splash Logo', action as Promise<void>);
-  };
-  const handleCreateContact = (newContact: Omit<Contact, 'id'>) => {
-      const action = handleAction(async () => { await db.createContact(newContact); addToast('Success', `Client "${newContact.fullName}" created.`, 'success'); });
-      handleLogAction('CREATE', 'Client', `Created client ${newContact.fullName}`, action as Promise<void>);
-  };
-  const handleUpdateContact = (updatedContact: Contact) => {
-      const action = handleAction(() => db.updateContact(updatedContact));
-      handleLogAction('UPDATE', 'Client', `Updated client ${updatedContact.fullName}`, action as Promise<void>);
-  };
-  const handleDeleteContact = (contactId: string) => {
-      const action = handleAction(() => db.deleteContact(contactId));
-      handleLogAction('DELETE', 'Client', `Deleted client ID: ${contactId}`, action as Promise<void>);
-  };
-
-  const handleCreateRental = (newRental: Omit<Rental, 'id'>) => {
-      const action = handleAction(async () => { 
-          await db.createRental(newRental); 
-          if(newRental.inventoryItemId) {
-              const item = inventory.find(i => i.id === newRental.inventoryItemId);
-              if(item) await db.updateInventory({ ...item, status: 'Rented' });
-          }
-          addToast('Success', 'New rental agreement created.', 'success'); 
-      });
-      handleLogAction('CREATE', 'Rental', `Created rental`, action as Promise<void>);
-  };
-  const handleUpdateRental = (updatedRental: Rental) => {
-      const action = handleAction(async () => {
-          const oldRental = rentals.find(r => r.id === updatedRental.id);
-          if (oldRental?.inventoryItemId !== updatedRental.inventoryItemId) {
-              if (oldRental?.inventoryItemId) {
-                  const item = inventory.find(i => i.id === oldRental.inventoryItemId);
-                  if (item) await db.updateInventory({ ...item, status: 'Available' });
-              }
-              if (updatedRental.inventoryItemId) {
-                  const item = inventory.find(i => i.id === updatedRental.inventoryItemId);
-                  if (item) await db.updateInventory({ ...item, status: 'Rented' });
-              }
-          }
-          await db.updateRental(updatedRental);
-      });
-      handleLogAction('UPDATE', 'Rental', `Updated rental ${updatedRental.id}`, action as Promise<void>);
-  };
-  const handleDeleteRental = (rentalId: string) => {
-      const action = handleAction(async () => {
-          const r = rentals.find(rent => rent.id === rentalId);
-          if (r?.inventoryItemId) {
-              const item = inventory.find(i => i.id === r.inventoryItemId);
-              if (item) await db.updateInventory({ ...item, status: 'Available' });
-          }
-          await db.deleteRental(rentalId);
-      });
-      handleLogAction('DELETE', 'Rental', `Deleted rental ${rentalId}`, action as Promise<void>);
-  };
-
-  const handleCreateRepair = (newRepair: Omit<Repair, 'id'>) => {
-      const action = handleAction(async () => { await db.createRepair(newRepair); addToast('Success', 'New repair request created.', 'success'); });
-      handleLogAction('CREATE', 'Repair', `Created repair request`, action as Promise<void>);
-  };
-  const handleUpdateRepair = (updatedRepair: Repair) => {
-      const action = handleAction(() => db.updateRepair(updatedRepair));
-      handleLogAction('UPDATE', 'Repair', `Updated repair ${updatedRepair.id}`, action as Promise<void>);
-  };
-  const handleDeleteRepair = (repairId: string) => {
-      const action = handleAction(() => db.deleteRepair(repairId));
-      handleLogAction('DELETE', 'Repair', `Deleted repair ${repairId}`, action as Promise<void>);
-  };
-  const handleCreateInventory = (newItem: Omit<InventoryItem, 'id'>) => {
-      const action = handleAction(async () => { await db.createInventory(newItem); addToast('Success', `Inventory item "${newItem.makeModel}" added.`, 'success'); });
-      handleLogAction('CREATE', 'Inventory', `Added ${newItem.itemType}: ${newItem.makeModel}`, action as Promise<void>);
-  };
-  const handleUpdateInventory = (updatedItem: InventoryItem) => {
-      const action = handleAction(() => db.updateInventory(updatedItem));
-      handleLogAction('UPDATE', 'Inventory', `Updated item ${updatedItem.makeModel}`, action as Promise<void>);
-  };
-  const handleDeleteInventory = (itemId: string) => {
-      const action = handleAction(() => db.deleteInventory(itemId));
-      handleLogAction('DELETE', 'Inventory', `Deleted item ${itemId}`, action as Promise<void>);
-  };
-  const handleCreateSale = (newSale: Omit<Sale, 'id'>) => {
-      const action = handleAction(async () => {
-        await db.createSale(newSale); addToast('Success', `Sale recorded.`, 'success');
-        const soldItem = inventory.find(i => i.id === newSale.itemId);
-        if(soldItem) await db.updateInventory({ ...soldItem, status: 'Sold' });
-      });
-      handleLogAction('CREATE', 'Sale', `Recorded sale to ${newSale.buyerName}`, action as Promise<void>);
-  };
-  const handleUpdateSale = (updatedSale: Sale) => {
-      const action = handleAction(() => db.updateSale(updatedSale));
-      handleLogAction('UPDATE', 'Sale', `Updated sale ${updatedSale.saleId}`, action as Promise<void>);
-  };
-  const handleDeleteSale = (saleId: string) => {
-      const action = handleAction(async () => {
-          const saleToDelete = sales.find(s => s.id === saleId); await db.deleteSale(saleId);
-          if (saleToDelete) {
-              const soldItem = inventory.find(i => i.id === saleToDelete.itemId);
-              if (soldItem) await db.updateInventory({ ...soldItem, status: 'Available' });
-          }
-      });
-      handleLogAction('DELETE', 'Sale', `Deleted sale ${saleId}`, action as Promise<void>);
-  };
-  const handleCreateVendor = (newVendor: Omit<Vendor, 'id'>) => {
-      const action = handleAction(async () => { await db.createVendor(newVendor); addToast('Success', `Vendor "${newVendor.vendorName}" added.`, 'success'); });
-      handleLogAction('CREATE', 'Vendor', `Created vendor ${newVendor.vendorName}`, action as Promise<void>);
-  };
-  const handleUpdateVendor = (updatedVendor: Vendor) => {
-      const action = handleAction(() => db.updateVendor(updatedVendor));
-      handleLogAction('UPDATE', 'Vendor', `Updated vendor ${updatedVendor.vendorName}`, action as Promise<void>);
-  };
-  const handleDeleteVendor = (vendorId: string) => {
-      const action = handleAction(() => db.deleteVendor(vendorId));
-      handleLogAction('DELETE', 'Vendor', `Deleted vendor ${vendorId}`, action as Promise<void>);
-  };
-  const handleUpdateSmsSettings = (settings: SmsSettings) => {
-      const action = handleAction(async () => { await db.saveSmsSettings(settings); setSmsSettings(settings); });
-      handleLogAction('UPDATE', 'Settings', 'Updated Twilio Settings', action as Promise<void>);
-  };
-  const handleUpdateAdminKey = (key: string) => {
-      const action = handleAction(async () => { await db.saveAdminKey(key); setAdminKey(key); addToast('Success', 'Admin Key updated.', 'success'); });
-      handleLogAction('UPDATE', 'Settings', 'Updated Admin Key', action as Promise<void>);
-  };
-  const handleUpdateNotificationSettings = (settings: NotificationSettings) => { handleAction(async () => { await db.saveNotificationSettings(settings); setNotificationSettings(settings); }); };
-  const handleDeleteLog = (logId: string) => { handleAction(() => db.deleteLogEntry(logId)); };
 
   if (!authChecked || !isSettingsInitialised || !settingsLoaded) {
-    return (<> <Preloader splashLogo={splashLogo} /> <div className="fixed bottom-4 right-4 text-xs text-white z-[10000]">v2.1-Steady</div> </>);
+    return (<> <Preloader splashLogo={splashLogo} /> <div className="fixed bottom-4 right-4 text-xs text-white z-[10000]">v3.1-Stable</div> </>);
   }
 
   if (!currentUser) {
-    return (<> <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} /> <ToastContainer toasts={toasts} removeToast={removeToast} /> </>);
+    return (<> <Login adminKey={adminKey} splashLogo={splashLogo} addToast={addToast} initialError={loginError} isSystemInitialized={isInitialized} /> <ToastContainer toasts={toasts} removeToast={removeToast} /> </>);
   }
 
   const filteredContacts = contacts.filter(c => c.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -467,7 +326,6 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden relative print:block print:h-auto print:overflow-visible">
         <Header viewName={AppView[currentView]} user={currentUser} onMenuClick={() => setIsSidebarOpen(true)} onSearch={setSearchTerm} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 relative print:h-auto print:overflow-visible">
-          {/* Fix: Passed inventory prop to Dashboard */}
           {currentView === AppView.Dashboard && <Dashboard contacts={contacts} rentals={rentals} repairs={repairs} inventory={inventory} users={users} currentUser={currentUser} siteContacts={siteContacts} siteRentals={siteRentals} siteRepairs={siteRepairs} />}
           {currentView === AppView.Users && <Users users={users} currentUser={currentUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} addToast={addToast} adminKey={adminKey} />}
           {currentView === AppView.Contacts && <Contacts contacts={searchTerm ? filteredContacts : contacts} currentUser={currentUser} onCreateContact={handleCreateContact} onUpdateContact={handleUpdateContact} onDeleteContact={handleDeleteContact} addToast={addToast} adminKey={adminKey} />}

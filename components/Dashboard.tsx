@@ -1,5 +1,9 @@
 
+// Added React import to fix "Cannot find namespace 'React'" errors.
+import React from 'react';
 import { Contact, Rental, Repair, User, SiteContact, SiteRental, SiteRepair, InventoryItem } from '../types';
+// Added icon imports to fix "Cannot find name" errors.
+import { ContactsIcon, RentalsIcon, RepairsIcon, UsersIcon } from './Icons';
 
 const StatCard = ({ icon, title, value, color }: { icon: React.ReactNode, title: string, value: number, color: string }) => (
   <div className="bg-white p-6 rounded-2xl flex items-center space-x-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">

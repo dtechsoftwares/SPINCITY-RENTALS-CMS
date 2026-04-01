@@ -1,0 +1,168 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email format)
+    //   - role: string (required, enum: ['Admin', 'User'])
+    //   - avatar: string (required)
+    //
+    // Collection: activity_logs
+    // Fields:
+    //   - timestamp: string (required, date-time)
+    //   - adminName: string (required)
+    //   - adminEmail: string (required)
+    //   - actionType: string (required, enum: ['CREATE', 'UPDATE', 'DELETE'])
+    //   - entity: string (required)
+    //   - details: string (required)
+    //
+    // Collection: contacts
+    // Fields:
+    //   - fullName: string (required)
+    //   - email: string (required)
+    //   - phone: string (required)
+    //   - address: string (required)
+    //   - plan: string (required)
+    //   - hookupType: string (required)
+    //   - createdAt: string (required)
+    //
+    // [Other collections follow similar patterns based on types.ts]
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+          (request.auth.token.email == "dtechsoftwaress@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['name', 'email', 'role', 'avatar']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['Admin', 'User'] &&
+             data.avatar is string;
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(['timestamp', 'adminName', 'adminEmail', 'actionType', 'entity', 'details']) &&
+             data.actionType in ['CREATE', 'UPDATE', 'DELETE'];
+    }
+
+    function isValidRepairRequest(data) {
+      return hasRequiredFields(['customerName', 'email', 'phone', 'applianceType', 'issueDescription', 'urgency', 'status']) &&
+             data.customerName is string && data.customerName.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.phone is string && data.phone.size() < 20 &&
+             data.status == 'new';
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidLog(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/public {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/private {
+      allow read, write: if isAdmin();
+    }
+
+    match /contacts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /rentals/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /repairs/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /inventory/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /vendors/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /sales/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /contact_submissions/{id} {
+      allow read: if isAdmin();
+      allow create: if true; // Public submission
+      allow update, delete: if isAdmin();
+    }
+
+    match /rental_agreements/{id} {
+      allow read: if isAdmin();
+      allow create: if true; // Public submission
+      allow update, delete: if isAdmin();
+    }
+
+    match /repair_requests/{id} {
+      allow read: if isAdmin();
+      allow create: if isValidRepairRequest(request.resource.data); // Public submission
+      allow update, delete: if isAdmin();
+    }
+  }
+}
